@@ -22,6 +22,7 @@ to chase
   ask mobs [ifelse count players in-radius 25 > 0 [face player 0 fd speed set relaxed? false] [relax] ]
 
 end
+;;relax doesn't work yet
 to relax
   ask mobs [if relaxed? = true
     [rt random 30 lt random 30 fd 0.5]
