@@ -1,3 +1,4 @@
+;;mob behavior
 globals [hp time]
 breed [mobs mob]
 breed [players player]
