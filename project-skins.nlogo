@@ -1,4 +1,4 @@
-
+;;character and mob skins get saved here
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
