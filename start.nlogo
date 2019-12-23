@@ -1,4 +1,6 @@
 ;;mob behavior
+;; The code works and the mobs wander around a certain area
+;; the code breaks if the player dies but we would reset the level anyway so that won't be relevant
 globals [hp time]
 breed [mobs mob]
 breed [players player]
@@ -19,20 +21,21 @@ to attack
 end
 
 to chase
-  ask mobs [ifelse count players in-radius 25 > 0 [face player 0 fd speed set relaxed? false] [relax] ]
+  ask mobs [ifelse count players in-radius 40 > 0 [face player 0 fd 0.5 set relaxed? false] [relax] ]
 
 end
 ;;relax doesn't work yet
 to relax
   ask mobs [if relaxed? = true
-    [rt random 30 lt random 30 fd 0.5]
-    if patch-ahead pxcor > x + 20 or patch-ahead pxcor < x - 20 or patch-ahead pycor > y + 20 or patch-ahead pycor < y - 20 [rt 180]]
+    [rt random 30 lt random 30 fd 0.2]
+  ask patch-here [ask mobs-here [if pxcor > x + 20 or pxcor < x - 20 or pycor > y + 20 or pycor < y - 20 and relaxed? = true [rt 180 fd 1]]]]
+
 
 
 end
 to wander
   every .025 [
-  if hp <= 0 [ask players [setxy random-xcor random-ycor set color brown set hp 15]]
+    if hp <= 0 [ask players [setxy random-xcor random-ycor set color brown set hp 15] ask mobs [set relaxed? true]]
   set time time + 1
     chase
     attack
@@ -139,7 +142,7 @@ BUTTON
 340
 521
 NIL
-ask player 0 [set heading 0 fd 0.5]\n
+ask player 0 [set heading 0 fd 1.5]\n
 NIL
 1
 T
@@ -156,7 +159,7 @@ BUTTON
 472
 612
 NIL
-ask player 0 [set heading 180 fd 0.5]\n
+ask player 0 [set heading 180 fd 1.5]\n
 NIL
 1
 T
@@ -173,7 +176,7 @@ BUTTON
 792
 527
 NIL
-ask player 0 [set heading 90 fd 0.5]\n
+ask player 0 [set heading 90 fd 1.5]\n
 NIL
 1
 T
@@ -190,7 +193,7 @@ BUTTON
 1211
 490
 NIL
-ask player 0 [set heading -90 fd 0.5]\n
+ask player 0 [set heading -90 fd 1.5]\n
 NIL
 1
 T
@@ -560,7 +563,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.1
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
