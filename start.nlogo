@@ -21,7 +21,7 @@ to attack
 end
 
 to chase
-  ask mobs [ifelse count players in-radius 40 > 0 [face player 0 fd 0.5 set relaxed? false] [relax] ]
+  ask mobs [ifelse count players in-radius 40 > 0 [face player 0 fd 0.5 set relaxed? false] [relax] ] ;;add wander so that mobs move after player escapes from chase
 
 end
 ;;relax doesn't work yet
