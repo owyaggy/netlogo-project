@@ -1,7 +1,9 @@
+;; Main issue: The relax border is somehow triggering even if the player is in the radius
+
 globals [hp time]
 breed [mobs mob]
 breed [players player]
-mobs-own [damage health speed as relaxed? x y]
+mobs-own [damage health speed as relaxed? x y a b]
 players-own [defense sped]
 to setup
   ca
@@ -18,18 +20,22 @@ to attack
 end
 
 to chase
-  ask mobs [ifelse count players in-radius 25 > 0 [face player 0 fd speed set relaxed? false] [relax] ]
+  ask mobs [ifelse count players in-radius 35 > 0 [face player 0 fd speed set relaxed? false] [relax] ]
 
 end
+
+
 to relax
-  ask mobs [if relaxed? = true
-    [rt random 30 lt random 30 fd 0.5]
-    if patch-ahead pxcor > x + 20 or patch-ahead pxcor < x - 20 or patch-ahead pycor > y + 20 or patch-ahead pycor < y - 20 [rt 180]]
+
+  ask mobs [
+    rt random 30 lt random 30 fd 0.5
+    if [pxcor] of patch-here  > (x + 40) or [pxcor] of patch-here < (x - 40) or [pycor] of patch-here > (y + 40) or [pycor] of patch-here < (y - 40) [rt 180 fd 0.5]]
+
 
 
 end
 to wander
-  every .025 [
+  every .125 [
   if hp <= 0 [ask players [setxy random-xcor random-ycor set color brown set hp 15]]
   set time time + 1
     chase
@@ -76,10 +82,10 @@ ticks
 30.0
 
 BUTTON
-26
-78
-99
-111
+30
+82
+103
+115
 NIL
 setup
 NIL
@@ -137,7 +143,7 @@ BUTTON
 340
 521
 NIL
-ask player 0 [set heading 0 fd 0.5]\n
+ask player 0 [set heading 0 fd 1.5]\n
 NIL
 1
 T
@@ -154,7 +160,7 @@ BUTTON
 472
 612
 NIL
-ask player 0 [set heading 180 fd 0.5]\n
+ask player 0 [set heading 180 fd 1.5]\n
 NIL
 1
 T
@@ -171,7 +177,7 @@ BUTTON
 792
 527
 NIL
-ask player 0 [set heading 90 fd 0.5]\n
+ask player 0 [set heading 90 fd 1.5]\n
 NIL
 1
 T
@@ -188,7 +194,7 @@ BUTTON
 1211
 490
 NIL
-ask player 0 [set heading -90 fd 0.5]\n
+ask player 0 [set heading -90 fd 1.5]\n
 NIL
 1
 T
