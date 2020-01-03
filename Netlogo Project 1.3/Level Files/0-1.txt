@@ -1,0 +1,7 @@
+Level 0-1
+
+Exits: (only first letter capitalized)
+Right Left Top Bottom
+
+Mobs:
+1 Skeleton

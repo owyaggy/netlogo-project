@@ -1,0 +1,7 @@
+Level 0-0
+
+Exits:
+Right Left
+
+Mobs:
+1 Skeleton
