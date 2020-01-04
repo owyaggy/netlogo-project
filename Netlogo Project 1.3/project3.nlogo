@@ -176,6 +176,66 @@ to directional
 end
 
 to read
+  carefully [
+    if level = 0 [
+      if room = 0 [file-open "Level Files/0-0.txt"]
+      if room = 1 [file-open "Level Files/0-1.txt"]
+      if room = 2 [file-open "Level Files/0-2.txt"]
+      if room = 3 [file-open "Level Files/0-3.txt"]
+      if room = 4 [file-open "Level Files/0-4.txt"]
+    ]
+    if level = 1 [
+      if room = 0 [file-open "Level Files/1-0.txt"]
+      if room = 1 [file-open "Level Files/1-1.txt"]
+      if room = 2 [file-open "Level Files/1-2.txt"]
+      if room = 3 [file-open "Level Files/1-3.txt"]
+      if room = 4 [file-open "Level Files/1-4.txt"]
+    ]
+    if level = 2 [
+      if room = 0 [file-open "Level Files/2-0.txt"]
+      if room = 1 [file-open "Level Files/2-1.txt"]
+      if room = 2 [file-open "Level Files/2-2.txt"]
+      if room = 3 [file-open "Level Files/2-3.txt"]
+      if room = 4 [file-open "Level Files/2-4.txt"]
+    ]
+    if level = 3 [
+      if room = 0 [file-open "Level Files/3-0.txt"]
+      if room = 1 [file-open "Level Files/3-1.txt"]
+      if room = 2 [file-open "Level Files/3-2.txt"]
+      if room = 3 [file-open "Level Files/3-3.txt"]
+      if room = 4 [file-open "Level Files/3-4.txt"]
+    ]
+    if level = 4 [
+      if room = 0 [file-open "Level Files/4-0.txt"]
+      if room = 1 [file-open "Level Files/4-1.txt"]
+      if room = 2 [file-open "Level Files/4-2.txt"]
+      if room = 3 [file-open "Level Files/4-3.txt"]
+      if room = 4 [file-open "Level Files/4-4.txt"]
+    ]
+    while [not file-at-end?]
+    [
+      set line file-read-line
+      check-line
+    ]
+  file-close
+  ][ ;; If error in reading file:
+    show "There was an error loading your level."
+    show "You will be returned to the beginning of this floor."
+    show "Sorry for the inconvenience!"
+    set room 0 setup-level
+  ]
+end
+
+to check-line
+  if member? "Exits" line [
+    if member? "Left" line [set exits lput "left" exits]
+    if member? "Right" line [set exits lput "right" exits]
+    if member? "Top" line [set exits lput "top" exits]
+    if member? "Bottom" line [set exits lput "bottom" exits]
+  ]
+end
+
+to read
   carefully [ ;; used for error handling
     if level = 0 [
       if room = 0 [file-open "Level Files/0-0.txt"]
@@ -198,10 +258,6 @@ to read
     ]
     file-close
   ] [
-    show "There was an error loading your level."
-    show "This means you will be returned to the first level."
-    show "We hope to improve error handling in the future."
-    set level 0 set room 0 setup-level
   ]
 end
 

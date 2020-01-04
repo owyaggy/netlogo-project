@@ -10,19 +10,9 @@ to read
   while [not file-at-end?]
   [
     set line file-read-line
-    ;;set document lput line document
-    ;;insert-item (length document + 1) document line
     check-line
-    ;;if member? "Left" document [set exits lput "left" exits]
-   ;; if member? "Right" document [set exits lput "right" exits]
-    ;;if member? "Top" document [set exits lput "top" exits]
-    ;;if member? "Bottom" document [set exits lput "bottom" exits]
   ]
   file-close
-end
-
-to show-document
-  ;;show document
 end
 
 to check-line

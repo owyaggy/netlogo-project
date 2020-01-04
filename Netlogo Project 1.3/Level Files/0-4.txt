@@ -4,4 +4,6 @@ Exits: Left
 
 Boss: 1
 
+MOB DROP
+
 Left: 0-3
