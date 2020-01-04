@@ -8,20 +8,39 @@
 
 globals
 [
+  ;; Setup:
+  
   side-width ;; side-width determines the width of the barrier around the world
   exits ;; exits is a list containing which exits are shown
   ;; the exits are "left" "right" "top" "bottom" and are updated by level files
   exit-width ;; exit-width determines how wide each exit is
+
+  ;; Keeping track of user:
+
+  level ;; level is current level
+  room ;; room is current room (there are a certain number of rooms for each level)
+  exit-on ;; string - which exit the user is on, or none
+
+  ;; User movement:
+
   speed ;; speed determines how far fd the character moves in the event of a keypress
   mx my nmx nmy ;; mx, my, nmx, and nmy, which mean (new) mouse-xcor/ycor, are used in the procedure directional
   ;; i.e. they're used to help point the character in the right direction
-  level ;; level is current level
-  room ;; room is current room (there are a certain number of rooms for each level)
   strafe-realign ;; whether or not strafing causes the character's heading to point back toward the mouse
+  
+  ;; Projectiles:
+
   ptype ;; what type of projectile the character has
   ptimer ;; projectile waiting timer
   ptimer-max ;; how long until new projectile can be fired (ticks)
   projectile-can-fire ;; if a projectile can fire right now
+
+  ;; Level files:
+
+  r-exit ;; which room is the right exit
+  l-exit ;; which room is the left exit
+  t-exit ;; which room is the top exit
+  b-exit ;; which room is the bottom exit
 ]
 
 breed[projectiles projectile]
@@ -86,6 +105,31 @@ to setup-character
   ]
 end
 
+to go
+  ;;every .1 [
+  directional
+  firing
+  ;; if mouse-down? [shoot] ;; this is too laggy
+  if count projectiles > 75 [ask projectiles [die] show "Too many projectiles were fired."]
+  if ptimer = 0 [set projectile-can-fire true]
+  if ptimer != 0 [set projectile-can-fire false]
+  if ptimer >= 1 [set ptimer (ptimer + 1) if ptimer >= ptimer-max [set ptimer 0]]
+  ifelse watch-character = true [watch turtle 0] [reset-perspective]
+  ;;]
+end
+
+to directional
+  set mx nmx
+  set my nmy
+  set nmx mouse-xcor
+  set nmy mouse-ycor
+  if mx != nmx [point] ;; only repoints character if mouse moves
+end
+
+to point ;; points character to mouse
+  ask turtle 0 [face patch mouse-xcor mouse-ycor]
+end
+
 to w ;; if w pressed / "forward"
   ask turtle 0 [fd speed check]
 end
@@ -116,23 +160,35 @@ to s ;; if s pressed / "backwards"
   ask turtle 0 [fd (-1 * speed) check]
 end
 
+to check ;; checks if there is a barrier
+  ;; currently this only works for the exact center of the character
+  if pcolor = blue [fd (speed * -1)]
+  carefully [if [pcolor] of patch-ahead 25 = blue [fd (speed * -1)]]
+  [fd (speed * -1)]
+  carefully [if [pcolor] of patch-ahead -25 = blue [fd (speed * 1)]]
+  [fd (speed * 1)]
+end
+
+to sense-exits
+  ask turtle 0 [
+    if (xcor - 10) > (max-pxcor - side-width) and (ycor < ((max-pycor / 2) + (exit-width / 2))) [
+      set exit-on "Right"
+    ]
+    if (xcor - 10) < (min-pxcor + side-width) and (ycor < ((max-pycor / 2) + (exit-width / 2))) [
+      set exit-on "Right"
+    ]
+    ;;if (ycor - 25) < (min-pycor)
+  ]
+end
+
+to setup-projectile
+  if ptype = 0 [set shape "circle" set color white set size 20 set pspeed 0.1]
+end
+
 to shoot
   if projectile-can-fire = true [
     ask turtle 0 [set ptimer 1 hatch-projectiles 1 [setup-projectile set pheading [heading] of turtle 0]]
   ]
-end
-
-to go
-  ;;every .1 [
-  directional
-  firing
-  ;; if mouse-down? [shoot] ;; this is too laggy
-  if count projectiles > 75 [ask projectiles [die] show "Too many projectiles were fired."]
-  if ptimer = 0 [set projectile-can-fire true]
-  if ptimer != 0 [set projectile-can-fire false]
-  if ptimer >= 1 [set ptimer (ptimer + 1) if ptimer >= ptimer-max [set ptimer 0]]
-  ifelse watch-character = true [watch turtle 0] [reset-perspective]
-  ;;]
 end
 
 to firing
@@ -150,33 +206,8 @@ to fire
   if ptype = 0 [ if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die] ]
 end
 
-to setup-projectile
-  if ptype = 0 [set shape "circle" set color white set size 20 set pspeed 0.1]
-end
-
-to check ;; checks if there is a barrier
-  ;; currently this only works for the exact center of the character
-  if pcolor = blue [fd (speed * -1)]
-  carefully [if [pcolor] of patch-ahead 25 = blue [fd (speed * -1)]]
-  [fd (speed * -1)]
-  carefully [if [pcolor] of patch-ahead -25 = blue [fd (speed * 1)]]
-  [fd (speed * 1)]
-end
-
-to point ;; points character to mouse
-  ask turtle 0 [face patch mouse-xcor mouse-ycor]
-end
-
-to directional
-  set mx nmx
-  set my nmy
-  set nmx mouse-xcor
-  set nmy mouse-ycor
-  if mx != nmx [point] ;; only repoints character if mouse moves
-end
-
 to read
-  carefully [
+  carefully [ ;; used for error handling
     if level = 0 [
       if room = 0 [file-open "Level Files/0-0.txt"]
       if room = 1 [file-open "Level Files/0-1.txt"]
@@ -233,34 +264,119 @@ to check-line
     if member? "Top" line [set exits lput "top" exits]
     if member? "Bottom" line [set exits lput "bottom" exits]
   ]
+  set-exits ;; Sets variables so exits will actually lead to rooms
 end
 
-to read
-  carefully [ ;; used for error handling
-    if level = 0 [
-      if room = 0 [file-open "Level Files/0-0.txt"]
-      if room = 1 [file-open "Level Files/0-1.txt"]
-      if room = 2 [file-open "Level Files/0-2.txt"]
-      if room = 3 [file-open "Level Files/0-3.txt"]
-      if room = 4 [file-open "Level Files/0-4.txt"]
-    ]
-    if level = 1 [
-      if room = 0 [file-open "Level Files/1-0.txt"]
-    ]
-    if level = 2 []
-    while [not file-at-end?]
-    [
-      let document file-read-line
-      if member? "Left" document [set exits lput "left" exits]
-      if member? "Right" document [set exits lput "right" exits]
-      if member? "Top" document [set exits lput "top" exits]
-      if member? "Bottom" document [set exits lput "bottom" exits]
-    ]
-    file-close
-  ] [
+to set-exits
+  if (member? line "Right") [
+    if (member? line "0-0") [set r-exit "0-0"]
+    if (member? line "0-1") [set r-exit "0-1"]
+    if (member? line "0-2") [set r-exit "0-2"]
+    if (member? line "0-3") [set r-exit "0-3"]
+    if (member? line "0-4") [set r-exit "0-4"]
+    if (member? line "1-0") [set r-exit "1-0"]
+    if (member? line "1-1") [set r-exit "1-1"]
+    if (member? line "1-2") [set r-exit "0-2"]
+    if (member? line "1-3") [set r-exit "1-3"]
+    if (member? line "1-4") [set r-exit "1-4"]
+    if (member? line "2-0") [set r-exit "2-0"]
+    if (member? line "2-1") [set r-exit "2-1"]
+    if (member? line "2-2") [set r-exit "2-2"]
+    if (member? line "2-3") [set r-exit "2-3"]
+    if (member? line "2-4") [set r-exit "2-4"]
+    if (member? line "3-0") [set r-exit "3-0"]
+    if (member? line "3-1") [set r-exit "3-1"]
+    if (member? line "3-2") [set r-exit "3-2"]
+    if (member? line "3-3") [set r-exit "3-3"]
+    if (member? line "3-4") [set r-exit "3-4"]
+    if (member? line "4-0") [set r-exit "4-0"]
+    if (member? line "4-1") [set r-exit "4-1"]
+    if (member? line "4-2") [set r-exit "4-2"]
+    if (member? line "4-3") [set r-exit "4-3"]
+    if (member? line "4-4") [set r-exit "4-4"]
+  ]
+  if (member? line "Left") [
+    if (member? line "0-0") [set l-exit "0-0"]
+    if (member? line "0-1") [set l-exit "0-1"]
+    if (member? line "0-2") [set l-exit "0-2"]
+    if (member? line "0-3") [set l-exit "0-3"]
+    if (member? line "0-4") [set l-exit "0-4"]
+    if (member? line "1-0") [set l-exit "1-0"]
+    if (member? line "1-1") [set l-exit "1-1"]
+    if (member? line "1-2") [set l-exit "0-2"]
+    if (member? line "1-3") [set l-exit "1-3"]
+    if (member? line "1-4") [set l-exit "1-4"]
+    if (member? line "2-0") [set l-exit "2-0"]
+    if (member? line "2-1") [set l-exit "2-1"]
+    if (member? line "2-2") [set l-exit "2-2"]
+    if (member? line "2-3") [set l-exit "2-3"]
+    if (member? line "2-4") [set l-exit "2-4"]
+    if (member? line "3-0") [set l-exit "3-0"]
+    if (member? line "3-1") [set l-exit "3-1"]
+    if (member? line "3-2") [set l-exit "3-2"]
+    if (member? line "3-3") [set l-exit "3-3"]
+    if (member? line "3-4") [set l-exit "3-4"]
+    if (member? line "4-0") [set l-exit "4-0"]
+    if (member? line "4-1") [set l-exit "4-1"]
+    if (member? line "4-2") [set l-exit "4-2"]
+    if (member? line "4-3") [set l-exit "4-3"]
+    if (member? line "4-4") [set l-exit "4-4"]
+  ]
+  if (member? line "Top") [
+    if (member? line "0-0") [set t-exit "0-0"]
+    if (member? line "0-1") [set t-exit "0-1"]
+    if (member? line "0-2") [set t-exit "0-2"]
+    if (member? line "0-3") [set t-exit "0-3"]
+    if (member? line "0-4") [set t-exit "0-4"]
+    if (member? line "1-0") [set t-exit "1-0"]
+    if (member? line "1-1") [set t-exit "1-1"]
+    if (member? line "1-2") [set t-exit "0-2"]
+    if (member? line "1-3") [set t-exit "1-3"]
+    if (member? line "1-4") [set t-exit "1-4"]
+    if (member? line "2-0") [set t-exit "2-0"]
+    if (member? line "2-1") [set t-exit "2-1"]
+    if (member? line "2-2") [set t-exit "2-2"]
+    if (member? line "2-3") [set t-exit "2-3"]
+    if (member? line "2-4") [set t-exit "2-4"]
+    if (member? line "3-0") [set t-exit "3-0"]
+    if (member? line "3-1") [set t-exit "3-1"]
+    if (member? line "3-2") [set t-exit "3-2"]
+    if (member? line "3-3") [set t-exit "3-3"]
+    if (member? line "3-4") [set t-exit "3-4"]
+    if (member? line "4-0") [set t-exit "4-0"]
+    if (member? line "4-1") [set t-exit "4-1"]
+    if (member? line "4-2") [set t-exit "4-2"]
+    if (member? line "4-3") [set t-exit "4-3"]
+    if (member? line "4-4") [set t-exit "4-4"]
+  ]
+  if (member? line "Bottom") [
+    if (member? line "0-0") [set b-exit "0-0"]
+    if (member? line "0-1") [set b-exit "0-1"]
+    if (member? line "0-2") [set b-exit "0-2"]
+    if (member? line "0-3") [set b-exit "0-3"]
+    if (member? line "0-4") [set b-exit "0-4"]
+    if (member? line "1-0") [set b-exit "1-0"]
+    if (member? line "1-1") [set b-exit "1-1"]
+    if (member? line "1-2") [set b-exit "0-2"]
+    if (member? line "1-3") [set b-exit "1-3"]
+    if (member? line "1-4") [set b-exit "1-4"]
+    if (member? line "2-0") [set b-exit "2-0"]
+    if (member? line "2-1") [set b-exit "2-1"]
+    if (member? line "2-2") [set b-exit "2-2"]
+    if (member? line "2-3") [set b-exit "2-3"]
+    if (member? line "2-4") [set b-exit "2-4"]
+    if (member? line "3-0") [set b-exit "3-0"]
+    if (member? line "3-1") [set b-exit "3-1"]
+    if (member? line "3-2") [set b-exit "3-2"]
+    if (member? line "3-3") [set b-exit "3-3"]
+    if (member? line "3-4") [set b-exit "3-4"]
+    if (member? line "4-0") [set b-exit "4-0"]
+    if (member? line "4-1") [set b-exit "4-1"]
+    if (member? line "4-2") [set b-exit "4-2"]
+    if (member? line "4-3") [set b-exit "4-3"]
+    if (member? line "4-4") [set b-exit "4-4"]
   ]
 end
-
 
 to advance-level
   set room room + 1
