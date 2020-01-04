@@ -1,15 +1,6 @@
-Level 0-0
+Level 3-0
 
-Exits: Right Top
+Exits: Left Top
 
-Melee: 0
-Magic: 0
-Range: 0
-Boss: 0
-Final Boss: 0
-Chests: 0
-Item: 0
-
-Right: 0-2
-Left: 0-1
-
+Top: 3-2
+Left: 3-1

@@ -1,6 +1,6 @@
-Level 0-0
+Level 4-2
 
-Exits: Right Top
+Exits: 
 
 Melee: 0
 Magic: 0
@@ -10,6 +10,7 @@ Final Boss: 0
 Chests: 0
 Item: 0
 
-Right: 0-2
-Left: 0-1
-
+Right:
+Left:
+Top:
+Bottom:

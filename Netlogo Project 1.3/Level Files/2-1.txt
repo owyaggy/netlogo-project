@@ -1,13 +1,10 @@
-Level 0-1
+Level 2-1
 
-Exits: Bottom
+Exits: Bottom Top Left Right
 
-Melee: 0
-Magic: 0
-Range: 0
-Boss: 0
-Final Boss: 0
-Chests: 0
-Item: ERROR
+Range: 2
 
-Bottom: 0-0
+Bottom: 2-3
+Top: 2-0
+Right: 2-4 LOCKED
+Left: 2-2
