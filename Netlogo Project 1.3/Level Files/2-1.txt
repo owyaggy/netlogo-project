@@ -1,0 +1,13 @@
+Level 0-1
+
+Exits: Bottom
+
+Melee: 0
+Magic: 0
+Range: 0
+Boss: 0
+Final Boss: 0
+Chests: 0
+Item: ERROR
+
+Bottom: 0-0
