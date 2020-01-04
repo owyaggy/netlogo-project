@@ -1,6 +1,6 @@
-Level 0-1
+Level 0-0
 
-Exits: Bottom
+Exits: Right Top
 
 Melee: 0
 Magic: 0
@@ -8,6 +8,8 @@ Range: 0
 Boss: 0
 Final Boss: 0
 Chests: 0
-Item: ERROR
+Item: 0
 
-Bottom: 0-0
+Right: 0-2
+Left: 0-1
+
