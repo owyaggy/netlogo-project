@@ -17,7 +17,7 @@ globals
 
   ;; Keeping track of user:
 
-  level ;; level is current floor
+  level ;; level is current level
   room ;; room is current room (there are a certain number of rooms for each level)
   exit-on ;; string - which exit the user is on, or none
 
@@ -279,8 +279,7 @@ to read
     ] [
       show "Whoops! Another error occured."
       show "You will be returned to the start of the game."
-      show "Sorry again for the error!"
-      set level 0 set room 0 setup-level
+      show "Sorry again for the er
     ]
   ]
 end
