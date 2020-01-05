@@ -14,10 +14,11 @@ globals
   exits ;; exits is a list containing which exits are shown
   ;; the exits are "left" "right" "top" "bottom" and are updated by level files
   exit-width ;; exit-width determines how wide each exit is
+  fancy-background ;; boolean if textured background or not
 
   ;; Keeping track of user:
 
-  level ;; level is current level
+  level ;; level is current floor
   room ;; room is current room (there are a certain number of rooms for each level)
   exit-on ;; string - which exit the user is on, or none
 
@@ -43,6 +44,7 @@ globals
   l-exit ;; which room is the left exit
   t-exit ;; which room is the top exit
   b-exit ;; which room is the bottom exit
+  locks ;; list with strings (Top/Right/etc.)
 ]
 
 breed[projectiles projectile]
@@ -64,6 +66,8 @@ to set-variables
   set side-width 15
   set exit-width 90
   set speed 5
+  set level 2
+  set room 1
   set exits []
   ;;set exits ["left" "right" "top"]
   read ;; this is a file-based way of setting exits
@@ -72,15 +76,27 @@ to set-variables
   set strafe-realign false ;; every time the character strafes, they DO NOT face toward the mouse
   set ptype 0 ;; default projectile type
   set ptimer 0
-  set ptimer-max 5 ;; modify this number to change the time (in ticks) before a projectile can be fired again
+  set ptimer-max 5000 ;; modify this number to change the time (in ticks) before a projectile can be fired again
   set projectile-can-fire true
   set line ""
-  set mouse-based true
+  set mouse-based true ;; true: w goes toward mouse, false: w goes up
+  set locks []
+  set exit-on "None"
 end
 
 to adjust-world
   resize-world -300 300 -200 200 ;; rectangle world size
   set-patch-size 1 ;; small patch size
+  ifelse fancy-background = false [
+    ask patches [set pcolor black]
+  ] [
+    ask patches [
+      ifelse random 4 = 0 [set pcolor 9]
+      [ifelse random 3 = 0 [set pcolor 8]
+        [ifelse random 2 = 0 [set pcolor 7]
+          [set pcolor 6]]]
+    ]
+  ]
   create-barrier
 end
 
@@ -93,17 +109,17 @@ to create-barrier
 end
 
 to create-exits
-  if member? "top" exits [ask patches with [pycor > 0 and abs(pxcor) < (exit-width / 2)] [set pcolor black]]
-  if member? "bottom" exits [ask patches with [pycor < 0 and abs(pxcor) < (exit-width / 2)] [set pcolor black]]
-  if member? "right" exits [ask patches with [pxcor > 0 and abs(pycor) < (exit-width / 2)] [set pcolor black]]
-  if member? "left" exits [ask patches with [pxcor < 0 and abs(pycor) < (exit-width / 2)] [set pcolor black]] ;; these create the exits
+  if member? "top" exits [ask patches with [pycor > (max-pycor - side-width) and abs(pxcor) < (exit-width / 2)] [set pcolor black]]
+  if member? "bottom" exits [ask patches with [pycor < (min-pycor + side-width) and abs(pxcor) < (exit-width / 2)] [set pcolor black]]
+  if member? "right" exits [ask patches with [pxcor > (max-pxcor - side-width) and abs(pycor) < (exit-width / 2)] [set pcolor black]]
+  if member? "left" exits [ask patches with [pxcor < (min-pxcor + side-width) and abs(pycor) < (exit-width / 2)] [set pcolor black]] ;; these create the exits
 end
 
 to setup-character
   crt 1
   ask turtle 0 [
     set shape "person"
-    set color red
+    set color green
     set size 50
     set heading 0
   ]
@@ -119,8 +135,9 @@ to go
   if count projectiles > 75 [ask projectiles [die] show "Too many projectiles were fired."]
   if ptimer = 0 [set projectile-can-fire true]
   if ptimer != 0 [set projectile-can-fire false]
-  if ptimer >= 1 [set ptimer (ptimer + 1) if ptimer >= ptimer-max [set ptimer 0]]
+  if projectile-can-fire = false [set ptimer (ptimer + 1) if ptimer >= ptimer-max [set ptimer 0 set projectile-can-fire true]]
   ifelse watch-character = true [watch turtle 0] [reset-perspective]
+  sense-exits
   ;;]
 end
 
@@ -156,9 +173,9 @@ to d ;; if d pressed / "right"
     let oldh heading ;; creates a variable to store the turtle's previous heading
     set heading heading + 90
     fd speed
+
     set heading oldh
     if strafe-realign = true [point]
-    check
   ]
 end
 
@@ -169,24 +186,25 @@ end
 to check ;; checks if there is a barrier
   ;; currently this only works for the exact center of the character
   if pcolor = blue [fd (speed * -1)]
-  carefully [if [pcolor] of patch-ahead 25 = blue [fd (speed * -1)]]
-  [fd (speed * -1)]
-  carefully [if [pcolor] of patch-ahead -25 = blue [fd (speed * 1)]]
-  [fd (speed * 1)]
+  carefully [if [pcolor] of patch-ahead 15 = blue [fd (speed * -1)]]
+  [if pcolor = blue [fd (speed * -1)]]
+  carefully [if [pcolor] of patch-ahead -15 = blue [fd (speed * 1)]]
+  [if pcolor = blue [fd (speed * 1)]]
 end
 
 to sense-exits
+  ;; Determining what exit turtle on:
   ask turtle 0 [
-    ifelse (xcor - 10) > (max-pxcor - side-width) and (ycor < ((max-pycor / 2) + (exit-width / 2))) [
+    ifelse xcor > max-pxcor - side-width and ycor < exit-width / 2 and ycor > 0 - exit-width / 2 [
       set exit-on "Right"
     ] [
-    ifelse (xcor + 10) < (min-pxcor + side-width) and (ycor < ((max-pycor / 2) + (exit-width / 2))) [
+    ifelse xcor < min-pxcor + side-width and ycor < exit-width / 2 and ycor > 0 - exit-width / 2 [
       set exit-on "Left"
     ] [
-    ifelse (ycor + 25) < (min-pycor) [
+    ifelse ycor < min-pycor + side-width and xcor < exit-width / 2 and xcor > 0 - exit-width / 2 [
       set exit-on "Bottom"
     ] [
-    ifelse ycor - 25 > (max-pycor) [
+    ifelse ycor > max-pycor - side-width and xcor < exit-width / 2 and xcor > 0 - exit-width / 2 [
       set exit-on "Top"
     ] [
       set exit-on "None"
@@ -199,6 +217,7 @@ end
 
 to shoot
   if projectile-can-fire = true [
+    set projectile-can-fire false
     ask turtle 0 [set ptimer 1 hatch-projectiles 1 [
       setup-projectile
       ifelse mouse-based = true [
@@ -215,8 +234,6 @@ end
 to firing
   ask projectiles [
     fire
-    ;;if (count projectiles) > 0 [if ptimer <= ptimer-max [set projectile-can-fire false set ptimer (ptimer + 1)]]
-    if ptimer > ptimer-max [set projectile-can-fire true set ptimer 0]
   ]
 end
 
@@ -279,7 +296,8 @@ to read
     ] [
       show "Whoops! Another error occured."
       show "You will be returned to the start of the game."
-      show "Sorry again for the er
+      show "Sorry again for the error!"
+      set level 0 set room 0 setup-level
     ]
   ]
 end
@@ -669,6 +687,40 @@ BUTTON
 502
 NIL
 sense-exits
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+715
+446
+828
+479
+NIL
+show exit-on
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+854
+49
+997
+82
+NIL
+show mouse-ycor
 T
 1
 T
