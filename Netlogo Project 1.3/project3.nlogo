@@ -45,6 +45,12 @@ globals
   t-exit ;; which room is the top exit
   b-exit ;; which room is the bottom exit
   locks ;; list with strings (Top/Right/etc.)
+
+  ;; Testing:
+
+  test
+  save
+  document
 ]
 
 breed[projectiles projectile]
@@ -63,11 +69,18 @@ to setup
 end
 
 to set-variables
+  set test false
+  set document []
+  set save "None"
+  set r-exit "None"
+  set l-exit "None"
+  set t-exit "None"
+  set b-exit "None"
   set side-width 15
   set exit-width 90
   set speed 5
-  set level 2
-  set room 1
+  set level 0
+  set room 0
   set exits []
   ;;set exits ["left" "right" "top"]
   read ;; this is a file-based way of setting exits
@@ -195,20 +208,41 @@ end
 to sense-exits
   ;; Determining what exit turtle on:
   ask turtle 0 [
-    ifelse xcor > max-pxcor - side-width and ycor < exit-width / 2 and ycor > 0 - exit-width / 2 [
-      set exit-on "Right"
-    ] [
-    ifelse xcor < min-pxcor + side-width and ycor < exit-width / 2 and ycor > 0 - exit-width / 2 [
-      set exit-on "Left"
-    ] [
-    ifelse ycor < min-pycor + side-width and xcor < exit-width / 2 and xcor > 0 - exit-width / 2 [
-      set exit-on "Bottom"
-    ] [
-    ifelse ycor > max-pycor - side-width and xcor < exit-width / 2 and xcor > 0 - exit-width / 2 [
-      set exit-on "Top"
-    ] [
-      set exit-on "None"
-  ]]]]]
+    if pcolor = black [
+      ifelse xcor > max-pxcor - side-width and ycor < exit-width / 2 and ycor > 0 - exit-width / 2 [
+        set exit-on "Right"
+      ] [
+        ifelse xcor < min-pxcor + side-width and ycor < exit-width / 2 and ycor > 0 - exit-width / 2 [
+          set exit-on "Left"
+        ] [
+          ifelse ycor < min-pycor + side-width and xcor < exit-width / 2 and xcor > 0 - exit-width / 2 [
+            set exit-on "Bottom"
+          ] [
+            ifelse ycor > max-pycor - side-width and xcor < exit-width / 2 and xcor > 0 - exit-width / 2 [
+              set exit-on "Top"
+            ] [
+              set exit-on "None"
+  ]]]]]]
+  if exit-on = "Right" [
+    set level first r-exit
+    set room last r-exit
+    advance-level
+  ]
+  if exit-on = "Left" [
+    set level first l-exit
+    set room last l-exit
+    advance-level
+  ]
+  if exit-on = "Top" [
+    set level first t-exit
+    set room last t-exit
+    advance-level
+  ]
+  if exit-on = "Bottom" [
+    set level first b-exit
+    set room last b-exit
+    advance-level
+  ]
 end
 
 to setup-projectile
@@ -283,7 +317,9 @@ to read
     ]
     while [not file-at-end?]
     [
+      set line 0
       set line file-read-line
+      set document lput line document
       check-line
     ]
   file-close
@@ -297,135 +333,148 @@ to read
       show "Whoops! Another error occured."
       show "You will be returned to the start of the game."
       show "Sorry again for the error!"
-      set level 0 set room 0 setup-level
+      carefully [
+        set level 0 set room 0 setup-level
+      ] [
+        show "The game is giving up now."
+      ]
     ]
   ]
 end
 
 to check-line
-  if member? "Exits" line [
-    if member? "Left" line [set exits lput "left" exits]
-    if member? "Right" line [set exits lput "right" exits]
-    if member? "Top" line [set exits lput "top" exits]
-    if member? "Bottom" line [set exits lput "bottom" exits]
+  if length line > 0 [
+    if member? "Exits" line [
+      if member? "Left" line [set exits lput "left" exits]
+      if member? "Right" line [set exits lput "right" exits]
+      if member? "Top" line [set exits lput "top" exits]
+      if member? "Bottom" line [set exits lput "bottom" exits]
+    ]
+    if not member? "Exits" line [
+      set-exits ;; Sets variables so exits will actually lead to rooms
+    ]
   ]
-  set-exits ;; Sets variables so exits will actually lead to rooms
 end
 
 to set-exits
-  if (member? line "Right") [
-    if (member? line "0-0") [set r-exit "0-0"]
-    if (member? line "0-1") [set r-exit "0-1"]
-    if (member? line "0-2") [set r-exit "0-2"]
-    if (member? line "0-3") [set r-exit "0-3"]
-    if (member? line "0-4") [set r-exit "0-4"]
-    if (member? line "1-0") [set r-exit "1-0"]
-    if (member? line "1-1") [set r-exit "1-1"]
-    if (member? line "1-2") [set r-exit "0-2"]
-    if (member? line "1-3") [set r-exit "1-3"]
-    if (member? line "1-4") [set r-exit "1-4"]
-    if (member? line "2-0") [set r-exit "2-0"]
-    if (member? line "2-1") [set r-exit "2-1"]
-    if (member? line "2-2") [set r-exit "2-2"]
-    if (member? line "2-3") [set r-exit "2-3"]
-    if (member? line "2-4") [set r-exit "2-4"]
-    if (member? line "3-0") [set r-exit "3-0"]
-    if (member? line "3-1") [set r-exit "3-1"]
-    if (member? line "3-2") [set r-exit "3-2"]
-    if (member? line "3-3") [set r-exit "3-3"]
-    if (member? line "3-4") [set r-exit "3-4"]
-    if (member? line "4-0") [set r-exit "4-0"]
-    if (member? line "4-1") [set r-exit "4-1"]
-    if (member? line "4-2") [set r-exit "4-2"]
-    if (member? line "4-3") [set r-exit "4-3"]
-    if (member? line "4-4") [set r-exit "4-4"]
+  if (member? "Right" line) [
+    if (member? "0-0" line) [set r-exit "0-0"]
+    if (member? "0-1" line) [set r-exit "0-1"]
+    if (member? "0-2" line) [set r-exit "0-2"]
+    if (member? "0-3" line) [set r-exit "0-3"]
+    if (member? "0-4" line) [set r-exit "0-4"]
+    if (member? "1-0" line) [set r-exit "1-0"]
+    if (member? "1-1" line) [set r-exit "1-1"]
+    if (member? "1-2" line) [set r-exit "1-2"]
+    if (member? "1-3" line) [set r-exit "1-3"]
+    if (member? "1-4" line) [set r-exit "1-4"]
+    if (member? "2-0" line) [set r-exit "2-0"]
+    if (member? "2-1" line) [set r-exit "2-1"]
+    if (member? "2-2" line) [set r-exit "2-2"]
+    if (member? "2-3" line) [set r-exit "2-3"]
+    if (member? "2-4" line) [set r-exit "2-4"]
+    if (member? "3-0" line) [set r-exit "3-0"]
+    if (member? "3-1" line) [set r-exit "3-1"]
+    if (member? "3-2" line) [set r-exit "3-2"]
+    if (member? "3-3" line) [set r-exit "3-3"]
+    if (member? "3-4" line) [set r-exit "3-4"]
+    if (member? "4-0" line) [set r-exit "4-0"]
+    if (member? "4-1" line) [set r-exit "4-1"]
+    if (member? "4-2" line) [set r-exit "4-2"]
+    if (member? "4-3" line) [set r-exit "4-3"]
+    if (member? "4-4" line) [set r-exit "4-4"]
   ]
-  if (member? line "Left") [
-    if (member? line "0-0") [set l-exit "0-0"]
-    if (member? line "0-1") [set l-exit "0-1"]
-    if (member? line "0-2") [set l-exit "0-2"]
-    if (member? line "0-3") [set l-exit "0-3"]
-    if (member? line "0-4") [set l-exit "0-4"]
-    if (member? line "1-0") [set l-exit "1-0"]
-    if (member? line "1-1") [set l-exit "1-1"]
-    if (member? line "1-2") [set l-exit "0-2"]
-    if (member? line "1-3") [set l-exit "1-3"]
-    if (member? line "1-4") [set l-exit "1-4"]
-    if (member? line "2-0") [set l-exit "2-0"]
-    if (member? line "2-1") [set l-exit "2-1"]
-    if (member? line "2-2") [set l-exit "2-2"]
-    if (member? line "2-3") [set l-exit "2-3"]
-    if (member? line "2-4") [set l-exit "2-4"]
-    if (member? line "3-0") [set l-exit "3-0"]
-    if (member? line "3-1") [set l-exit "3-1"]
-    if (member? line "3-2") [set l-exit "3-2"]
-    if (member? line "3-3") [set l-exit "3-3"]
-    if (member? line "3-4") [set l-exit "3-4"]
-    if (member? line "4-0") [set l-exit "4-0"]
-    if (member? line "4-1") [set l-exit "4-1"]
-    if (member? line "4-2") [set l-exit "4-2"]
-    if (member? line "4-3") [set l-exit "4-3"]
-    if (member? line "4-4") [set l-exit "4-4"]
+  if (member? "Left" line) [
+    if (member? "0-0" line) [set l-exit "0-0"]
+    if (member? "0-1" line) [set l-exit "0-1"]
+    if (member? "0-2" line) [set l-exit "0-2"]
+    if (member? "0-3" line) [set l-exit "0-3"]
+    if (member? "0-4" line) [set l-exit "0-4"]
+    if (member? "1-0" line) [set l-exit "1-0"]
+    if (member? "1-1" line) [set l-exit "1-1"]
+    if (member? "1-2" line) [set l-exit "1-2"]
+    if (member? "1-3" line) [set l-exit "1-3"]
+    if (member? "1-4" line) [set l-exit "1-4"]
+    if (member? "2-0" line) [set l-exit "2-0"]
+    if (member? "2-1" line) [set l-exit "2-1"]
+    if (member? "2-2" line) [set l-exit "2-2"]
+    if (member? "2-3" line) [set l-exit "2-3"]
+    if (member? "2-4" line) [set l-exit "2-4"]
+    if (member? "3-0" line) [set l-exit "3-0"]
+    if (member? "3-1" line) [set l-exit "3-1"]
+    if (member? "3-2" line) [set l-exit "3-2"]
+    if (member? "3-3" line) [set l-exit "3-3"]
+    if (member? "3-4" line) [set l-exit "3-4"]
+    if (member? "4-0" line) [set l-exit "4-0"]
+    if (member? "4-1" line) [set l-exit "4-1"]
+    if (member? "4-2" line) [set l-exit "4-2"]
+    if (member? "4-3" line) [set l-exit "4-3"]
+    if (member? "4-4" line) [set l-exit "4-4"]
   ]
-  if (member? line "Top") [
-    if (member? line "0-0") [set t-exit "0-0"]
-    if (member? line "0-1") [set t-exit "0-1"]
-    if (member? line "0-2") [set t-exit "0-2"]
-    if (member? line "0-3") [set t-exit "0-3"]
-    if (member? line "0-4") [set t-exit "0-4"]
-    if (member? line "1-0") [set t-exit "1-0"]
-    if (member? line "1-1") [set t-exit "1-1"]
-    if (member? line "1-2") [set t-exit "0-2"]
-    if (member? line "1-3") [set t-exit "1-3"]
-    if (member? line "1-4") [set t-exit "1-4"]
-    if (member? line "2-0") [set t-exit "2-0"]
-    if (member? line "2-1") [set t-exit "2-1"]
-    if (member? line "2-2") [set t-exit "2-2"]
-    if (member? line "2-3") [set t-exit "2-3"]
-    if (member? line "2-4") [set t-exit "2-4"]
-    if (member? line "3-0") [set t-exit "3-0"]
-    if (member? line "3-1") [set t-exit "3-1"]
-    if (member? line "3-2") [set t-exit "3-2"]
-    if (member? line "3-3") [set t-exit "3-3"]
-    if (member? line "3-4") [set t-exit "3-4"]
-    if (member? line "4-0") [set t-exit "4-0"]
-    if (member? line "4-1") [set t-exit "4-1"]
-    if (member? line "4-2") [set t-exit "4-2"]
-    if (member? line "4-3") [set t-exit "4-3"]
-    if (member? line "4-4") [set t-exit "4-4"]
+  if (member? "Top" line) [
+    if (member? "0-0" line) [set t-exit "0-0"]
+    if (member? "0-1" line) [set t-exit "0-1"]
+    if (member? "0-2" line) [set t-exit "0-2"]
+    if (member? "0-3" line) [set t-exit "0-3"]
+    if (member? "0-4" line) [set t-exit "0-4"]
+    if (member? "1-0" line) [set t-exit "1-0"]
+    if (member? "1-1" line) [set t-exit "1-1"]
+    if (member? "1-2" line) [set t-exit "1-2"]
+    if (member? "1-3" line) [set t-exit "1-3"]
+    if (member? "1-4" line) [set t-exit "1-4"]
+    if (member? "2-0" line) [set t-exit "2-0"]
+    if (member? "2-1" line) [set t-exit "2-1"]
+    if (member? "2-2" line) [set t-exit "2-2"]
+    if (member? "2-3" line) [set t-exit "2-3"]
+    if (member? "2-4" line) [set t-exit "2-4"]
+    if (member? "3-0" line) [set t-exit "3-0"]
+    if (member? "3-1" line) [set t-exit "3-1"]
+    if (member? "3-2" line) [set t-exit "3-2"]
+    if (member? "3-3" line) [set t-exit "3-3"]
+    if (member? "3-4" line) [set t-exit "3-4"]
+    if (member? "4-0" line) [set t-exit "4-0"]
+    if (member? "4-1" line) [set t-exit "4-1"]
+    if (member? "4-2" line) [set t-exit "4-2"]
+    if (member? "4-3" line) [set t-exit "4-3"]
+    if (member? "4-4" line) [set t-exit "4-4"]
   ]
-  if (member? line "Bottom") [
-    if (member? line "0-0") [set b-exit "0-0"]
-    if (member? line "0-1") [set b-exit "0-1"]
-    if (member? line "0-2") [set b-exit "0-2"]
-    if (member? line "0-3") [set b-exit "0-3"]
-    if (member? line "0-4") [set b-exit "0-4"]
-    if (member? line "1-0") [set b-exit "1-0"]
-    if (member? line "1-1") [set b-exit "1-1"]
-    if (member? line "1-2") [set b-exit "0-2"]
-    if (member? line "1-3") [set b-exit "1-3"]
-    if (member? line "1-4") [set b-exit "1-4"]
-    if (member? line "2-0") [set b-exit "2-0"]
-    if (member? line "2-1") [set b-exit "2-1"]
-    if (member? line "2-2") [set b-exit "2-2"]
-    if (member? line "2-3") [set b-exit "2-3"]
-    if (member? line "2-4") [set b-exit "2-4"]
-    if (member? line "3-0") [set b-exit "3-0"]
-    if (member? line "3-1") [set b-exit "3-1"]
-    if (member? line "3-2") [set b-exit "3-2"]
-    if (member? line "3-3") [set b-exit "3-3"]
-    if (member? line "3-4") [set b-exit "3-4"]
-    if (member? line "4-0") [set b-exit "4-0"]
-    if (member? line "4-1") [set b-exit "4-1"]
-    if (member? line "4-2") [set b-exit "4-2"]
-    if (member? line "4-3") [set b-exit "4-3"]
-    if (member? line "4-4") [set b-exit "4-4"]
+  if (member? "Bottom" line) [
+    if (member? "0-0" line) [set b-exit "0-0"]
+    if (member? "0-1" line) [set b-exit "0-1"]
+    if (member? "0-2" line) [set b-exit "0-2"]
+    if (member? "0-3" line) [set b-exit "0-3"]
+    if (member? "0-4" line) [set b-exit "0-4"]
+    if (member? "1-0" line) [set b-exit "1-0"]
+    if (member? "1-1" line) [set b-exit "1-1"]
+    if (member? "1-2" line) [set b-exit "1-2"]
+    if (member? "1-3" line) [set b-exit "1-3"]
+    if (member? "1-4" line) [set b-exit "1-4"]
+    if (member? "2-0" line) [set b-exit "2-0"]
+    if (member? "2-1" line) [set b-exit "2-1"]
+    if (member? "2-2" line) [set b-exit "2-2"]
+    if (member? "2-3" line) [set b-exit "2-3"]
+    if (member? "2-4" line) [set b-exit "2-4"]
+    if (member? "3-0" line) [set b-exit "3-0"]
+    if (member? "3-1" line) [set b-exit "3-1"]
+    if (member? "3-2" line) [set b-exit "3-2"]
+    if (member? "3-3" line) [set b-exit "3-3"]
+    if (member? "3-4" line) [set b-exit "3-4"]
+    if (member? "4-0" line) [set b-exit "4-0"]
+    if (member? "4-1" line) [set b-exit "4-1"]
+    if (member? "4-2" line) [set b-exit "4-2"]
+    if (member? "4-3" line) [set b-exit "4-3"]
+    if (member? "4-4" line) [set b-exit "4-4"]
   ]
 end
 
 to advance-level
-  set room room + 1
-  if room > 4 [set level level + 1 set room 0]
+  set r-exit "None"
+  set l-exit "None"
+  set t-exit "None"
+  set b-exit "None"
+  ask turtle 0 [setxy 0 0]
+  ;;set room room + 1
+  ;;if room > 4 [set level level + 1 set room 0]
   setup-level
 end
 
@@ -679,57 +728,6 @@ watch-character
 1
 1
 -1000
-
-BUTTON
-572
-469
-676
-502
-NIL
-sense-exits
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-715
-446
-828
-479
-NIL
-show exit-on
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-854
-49
-997
-82
-NIL
-show mouse-ycor
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 @#$#@#$#@
 ## WHAT IS IT?
