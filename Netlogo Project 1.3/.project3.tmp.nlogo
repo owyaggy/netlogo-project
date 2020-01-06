@@ -144,47 +144,41 @@ to read-file
         set lmagic lput 5 lmagic
       ]
     ]
-    ;; Range
-    if member? "Range" line [
+    ;;
+    if member? "Melee" line [
       if member? "1" line [
-        set lrange lput 1 lrange
+        set lmelee lput 1 lmelee
       ]
       if member? "2" line [
-        set lrange lput 2 lrange
+        set lmelee lput 2 lmelee
       ]
       if member? "3" line [
-        set lrange lput 3 lrange
+        set lmelee lput 3 lmelee
       ]
       if member? "4" line [
-        set lrange lput 4 lrange
+        set lmelee lput 4 lmelee
       ]
       if member? "5" line [
-        set lrange lput 5 lrange
+        set lmelee lput 5 lmelee
       ]
     ]
-    ;; Level boss (not final)
-    if member? "Boss" line [
+    ;; Melee
+    if member? "Melee" line [
       if member? "1" line [
-        set lboss lput 1 lboss
+        set lmelee lput 1 lmelee
       ]
       if member? "2" line [
-        set lboss lput 2 lboss
+        set lmelee lput 2 lmelee
       ]
       if member? "3" line [
-        set lboss lput 3 lboss
+        set lmelee lput 3 lmelee
       ]
       if member? "4" line [
-        set lboss lput 4 lboss
+        set lmelee lput 4 lmelee
       ]
       if member? "5" line [
-        set lboss lput 5 lboss
+        set lmelee lput 5 lmelee
       ]
-    ]
-    ;; Final boss
-    if member? "Final Boss" line [
-      ifelse member? "1" line [
-        set lfinal lput 1 lfinal
-      ] [set lfinal lput 0 lfinal]
     ]
   ]
   set exits lput lexits exits
