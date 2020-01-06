@@ -1,0 +1,9 @@
+Level 2-2
+
+Exits: Right
+
+Magic: 2
+
+MOB KEY
+
+Right: 2-1

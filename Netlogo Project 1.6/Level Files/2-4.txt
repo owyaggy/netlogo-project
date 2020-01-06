@@ -1,0 +1,7 @@
+Level 2-4
+
+Exits: Left
+
+Boss: 1
+
+Left: 2-1

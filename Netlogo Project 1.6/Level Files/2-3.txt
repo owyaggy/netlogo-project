@@ -1,0 +1,7 @@
+Level 2-3
+
+Exits: Top
+
+Melee: 3
+
+Top: 2-1

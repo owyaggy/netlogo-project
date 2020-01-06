@@ -1,0 +1,10 @@
+Level 3-2
+
+Exits: Bottom Top
+
+Melee: 3
+
+MOB KEY
+
+Bottom: 3-0
+Top: 3-3
