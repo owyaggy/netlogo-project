@@ -224,22 +224,29 @@ to sense-exits
               set exit-on "None"
   ]]]]]]
   if exit-on = "Right" [
-    set level first r-exit
     set room last r-exit
+    open-the-file
+    wait 1
+    show "3"
+    wait 1
+    show "2"
+    wait 1
+    show "1"
+    wait 1
+    show "0"
+    file-open "Level Files/0-2.txt"
+    read
     advance-level
   ]
   if exit-on = "Left" [
-    set level first l-exit
     set room last l-exit
     advance-level
   ]
   if exit-on = "Top" [
-    set level first t-exit
     set room last t-exit
     advance-level
   ]
   if exit-on = "Bottom" [
-    set level first b-exit
     set room last b-exit
     advance-level
   ]
@@ -278,9 +285,8 @@ to fire
   if ptype = 0 [ if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die] ]
 end
 
-to read
-  carefully [ ;; used for error handling
-    if level = 0 [
+to open-the-file
+  if level = 0 [
       if room = 0 [file-open "Level Files/0-0.txt"]
       if room = 1 [file-open "Level Files/0-1.txt"]
       if room = 2 [file-open "Level Files/0-2.txt"]
@@ -315,31 +321,38 @@ to read
       if room = 3 [file-open "Level Files/4-3.txt"]
       if room = 4 [file-open "Level Files/4-4.txt"]
     ]
-    while [not file-at-end?]
-    [
-      set line 0
-      set line file-read-line
-      set document lput line document
-      check-line
-    ]
-  file-close
-  ][ ;; If error in reading file:
-    show "There was an error loading your level."
-    show "You will be returned to the beginning of this floor."
-    show "Sorry for the inconvenience!"
-    carefully [
-      set room 0 setup-level
-    ] [
-      show "Whoops! Another error occured."
-      show "You will be returned to the start of the game."
-      show "Sorry again for the error!"
-      carefully [
-        set level 0 set room 0 setup-level
-      ] [
-        show "The game is giving up now."
-      ]
-    ]
+end
+
+to read
+  ;;carefully [ ;; used for error handling
+    open-the-file
+  carefully [
+    while [file-at-end? = false]
+    [set line file-read-line check-line]
+    file-close
+  ] [
+    open-the-file
+    while [file-at-end? = false]
+    [set line file-read-line check-line]
+    file-close
   ]
+  ;;][ ;; If error in reading file:
+  ;;  show "There was an error loading your level."
+  ;;  show "You will be returned to the beginning of this floor."
+  ;;  show "Sorry for the inconvenience!"
+  ;;  carefully [
+  ;;    set room 0 setup-level
+  ;;  ] [
+  ;;    show "Whoops! Another error occured."
+  ;;    show "You will be returned to the start of the game."
+  ;;    show "Sorry again for the error!"
+  ;;    carefully [
+  ;;     set level 0 set room 0 setup-level
+  ;;   ] [
+  ;;     show "The game is giving up now."
+  ;;    ]
+  ;;  ]
+  ;;]
 end
 
 to check-line
