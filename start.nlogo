@@ -3,15 +3,16 @@
 globals [hp time]
 breed [mobs mob]
 breed [players player]
-mobs-own [damage health speed as relaxed? x y a b]
+mobs-own [damage health speed as relaxed? x y t]
 players-own [defense sped]
 to setup
   ca
   create-players 1 [set shape "person" set size 10]
   set hp 15
 
-  create-mobs 5 [setxy random-xcor random-ycor set shape "spider" set size 10 set damage 3 set speed 0.5 set as 8 set relaxed? true]
+  create-mobs 5 [setxy random-xcor random-ycor set shape "spider" set size 14 set damage 3 set speed 0.5 set as 8 set relaxed? true set t random 50 + 30]
   ask patches [ask mobs-here [set x pxcor set y pycor]]
+  ask patches [ifelse (pxcor mod 6 = 0 or pxcor mod 6 = 1 or pxcor mod 6 = 2) and (pycor mod 6 = 0 or pycor mod 6 = 1 or pycor mod 6 = 2)[set pcolor black] [set pcolor blue]]
 end
 to attack
   ask mobs [ifelse count players in-radius 1 > 0 and as <= 0 [set hp hp - damage set as 8 ask player 0[fd 10 set sped 0.6]] [set as as - 1] ]
@@ -20,7 +21,8 @@ to attack
 end
 
 to chase
-  ask mobs [ifelse count players in-radius 35 > 0 [face player 0 fd speed set relaxed? false] [relax] ]
+  ask mobs [if count players in-radius 45 > 0 [set relaxed? false]]
+  ask mobs [ifelse count players in-radius 35 > 0 [face player 0 fd speed] [ifelse relaxed? = true [relax] [rt random t lt random t fd 0.5]] ]
 
 end
 
@@ -28,8 +30,8 @@ end
 to relax
 
   ask mobs [
-    rt random 30 lt random 30 fd 0.5
-    if [pxcor] of patch-here  > (x + 40) or [pxcor] of patch-here < (x - 40) or [pycor] of patch-here > (y + 40) or [pycor] of patch-here < (y - 40) [rt 180 fd 0.5]]
+    rt random t lt random t fd 0.5
+    if [pxcor] of patch-here  > (x + 40) or [pxcor] of patch-here < (x - 40) or [pycor] of patch-here > (y + 40) or [pycor] of patch-here < (y - 40) and relaxed? = true [face patch x y]]
 
 
 
@@ -42,7 +44,8 @@ to wander
     attack
     if time > 50
     [set time 0]
-
+    ask mobs [if [pxcor] of patch-here = min-pxcor or [pxcor] of patch-here = max-pxcor or [pycor] of patch-here = min-pycor or [pycor] of patch-here = max-pycor
+      [ifelse random 2 = 0 [rt 150] [lt 150]]]
   ]
 end
 
