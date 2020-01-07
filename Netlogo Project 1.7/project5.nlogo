@@ -24,12 +24,22 @@ globals
   exit-width ;; exit-width determines how wide each exit is
   fancy-background ;; boolean if textured background or not
 
+  ;; Different start settings:
+
+  player-type ;; what version of the character is
+  attack-damage ;; how much damage is dealt per attack
+
   ;; Keeping track of user:
 
   level ;; level is current floor
   room ;; room is current room (there are a certain number of rooms for each level)
   exit-on ;; string - which exit the user is on, or none
   level-number ;; the overall number of the room (0-24)
+
+  ;; User info
+
+  inventory
+  health
 
   ;; User movement:
 
@@ -78,6 +88,7 @@ globals
   test
   save
   document
+  one-time
 ]
 
 breed[projectiles projectile]
@@ -572,6 +583,7 @@ to setup
 end
 
 to set-variables
+  set one-time 0
   set test false
   set document []
   set save "None"
@@ -579,13 +591,16 @@ to set-variables
   set l-exit "None"
   set t-exit "None"
   set b-exit "None"
+  set inventory []
+  set health 100 ;; NEED TO CHANGE THIS
+  set player-type 0 ;; default (no character) 1 = knight, 2 = archer, 3 = wizard
   set side-width 15
   set exit-width 90
   set speed 5
   carefully [
     set level Start-Level
   ] [set level 0]
-  set room 0
+  set room -1
   set level-number 0
   set exits []
   set exits lput item 0 lexits exits
@@ -640,15 +655,18 @@ end
 to setup-character
   crt 1
   ask turtle 0 [
-    set shape "person"
-    set color green
     set size 50
     set heading 0
+    set hidden? true
+    set color white
   ]
 end
 
 to go
   ;;every .1 [
+  if room = -1 [
+    tutorial
+  ]
   ifelse mouse-based = true [
     directional
   ] [ask turtle 0 [set heading 0]]
@@ -677,42 +695,46 @@ to point ;; points character to mouse
 end
 
 to w ;; if w pressed / "forward"
-  ask turtle 0 [fd speed check]
+  if player-type != 0 [ask turtle 0 [fd speed check]]
 end
 
 to a ;; if a pressed / "left"
-  ask turtle 0 [
-    let oldh heading ;; creates a variable to store the turtle's previous heading
-    set heading heading - 90
-    fd speed
-    check
-    set heading oldh
-    if strafe-realign = true [point]
+  if player-type != 0 [
+    ask turtle 0 [
+      let oldh heading ;; creates a variable to store the turtle's previous heading
+      set heading heading - 90
+      fd speed
+      check
+      set heading oldh
+      if strafe-realign = true [point]
+    ]
   ]
 end
 
 to d ;; if d pressed / "right"
-  ask turtle 0 [
-    let oldh heading ;; creates a variable to store the turtle's previous heading
-    set heading heading + 90
-    fd speed
-    check
-    set heading oldh
-    if strafe-realign = true [point]
+  if player-type != 0 [
+    ask turtle 0 [
+      let oldh heading ;; creates a variable to store the turtle's previous heading
+      set heading heading + 90
+      fd speed
+      check
+      set heading oldh
+      if strafe-realign = true [point]
+    ]
   ]
 end
 
 to s ;; if s pressed / "backwards"
-  ask turtle 0 [fd (-1 * speed) check]
+  if player-type != 0 [ask turtle 0 [fd (-1 * speed) check]]
 end
 
 to check ;; checks if there is a barrier
   ;; currently this only works for the exact center of the character
-  if pcolor = blue [fd (speed * -1)]
-  carefully [if [pcolor] of patch-ahead 15 = blue [fd (speed * -1)]]
-  [if pcolor = blue [fd (speed * -1)]]
-  carefully [if [pcolor] of patch-ahead -15 = blue [fd (speed * 1)]]
-  [if pcolor = blue [fd (speed * 1)]]
+  if pcolor = blue or pcolor = orange [fd (speed * -1)]
+  carefully [if [pcolor] of patch-ahead 15 = blue or [pcolor] of patch-ahead 15 = orange [fd (speed * -1)]]
+  [if pcolor = blue or pcolor = orange [fd (speed * -1)]]
+  carefully [if [pcolor] of patch-ahead -15 = blue or [pcolor] of patch-ahead -15 = orange [fd (speed * 1)]]
+  [if pcolor = blue or pcolor = orange [fd (speed * 1)]]
 end
 
 to sense-exits
@@ -756,6 +778,16 @@ to sense-exits
       set room read-from-string item 2 b-exit
     ] [set room room]
     advance-level
+  ]
+end
+
+to attack
+  if player-type = 1 [hit]
+  if player-type = 2 [shoot]
+end
+
+to hit
+  ask turtle 0 [
   ]
 end
 
@@ -814,14 +846,21 @@ end
 
 to setup-level
   set-level-number
-  set r-exit item level-number lr-exit
-  set l-exit item level-number ll-exit
-  set t-exit item level-number ltexit
-  set b-exit item level-number lb-exit
-  set exits item level-number lexits
+  if room >= 0 [
+    set r-exit item level-number lr-exit
+    set l-exit item level-number ll-exit
+    set t-exit item level-number ltexit
+    set b-exit item level-number lb-exit
+    set exits item level-number lexits
+  ]
+  if room = -1 [
+    set exits ["top"]
+    set t-exit "0-0"
+  ]
 end
 
 to set-level-number
+  if room = -1 [set level-number -1]
   if level = 0 [
      if room = 0 [set level-number 0]
      if room = 1 [set level-number 1]
@@ -856,6 +895,32 @@ to set-level-number
      if room = 2 [set level-number 22]
      if room = 3 [set level-number 23]
      if room = 4 [set level-number 24]
+  ]
+end
+
+to set-character-knight
+  ifelse room = -1 [set player-type 1] [show "You can't change your character now!"]
+end
+
+to set-character-archer
+  ifelse room = -1 [set player-type 2] [show "You can't change your character now!"]
+end
+
+to set-character-wizard
+  ifelse room = -1 [set player-type 3] [show "You can't change your character now!"]
+end
+
+to tutorial
+  if one-time = 0 [show "Select a character on the right!" set one-time 1]
+  ask turtle 0 [
+    if player-type = 1 [set shape "person police" set hidden? false]
+    if player-type = 2 [set shape "person soldier" set hidden? false]
+    if player-type = 3 [set shape "person graduate" set hidden? false]
+  ]
+  if one-time = 1 and player-type != 0 [
+    show "You can change your character until you exit this room."
+    show "Click right next to the world, then use your mouse and w to move."
+    set one-time 2
   ]
 end
 @#$#@#$#@
@@ -904,11 +969,11 @@ NIL
 1
 
 BUTTON
-62
+53
 68
-125
+135
 101
-Up
+Forward
 w
 NIL
 1
@@ -921,10 +986,10 @@ NIL
 1
 
 BUTTON
-94
-100
-163
-133
+405
+507
+474
+540
 Right
 d
 NIL
@@ -935,13 +1000,13 @@ NIL
 D
 NIL
 NIL
-1
+0
 
 BUTTON
-33
-100
-96
-133
+344
+507
+407
+540
 Left
 a
 NIL
@@ -952,13 +1017,13 @@ NIL
 A
 NIL
 NIL
-1
+0
 
 BUTTON
-57
-132
-128
-165
+368
+539
+439
+572
 Down
 s
 NIL
@@ -969,7 +1034,7 @@ NIL
 S
 NIL
 NIL
-1
+0
 
 BUTTON
 91
@@ -989,10 +1054,10 @@ NIL
 1
 
 MONITOR
-93
-237
-173
-282
+97
+174
+177
+219
 NIL
 room
 17
@@ -1000,10 +1065,10 @@ room
 11
 
 MONITOR
-16
-237
-94
-282
+20
+174
+98
+219
 NIL
 level
 17
@@ -1011,12 +1076,12 @@ level
 11
 
 BUTTON
-58
-185
-125
-218
+60
+114
+129
+147
 NIL
-shoot
+attack
 NIL
 1
 T
@@ -1028,10 +1093,10 @@ NIL
 1
 
 SWITCH
-217
-479
-375
-512
+473
+505
+631
+538
 watch-character
 watch-character
 1
@@ -1039,10 +1104,10 @@ watch-character
 -1000
 
 SWITCH
-540
-473
-732
-506
+438
+538
+630
+571
 use-mouse-to-point?
 use-mouse-to-point?
 0
@@ -1059,88 +1124,79 @@ TITLE OF OUR DUNGEON GAME
 0.0
 1
 
-TEXTBOX
-0
-308
-223
-462
-------------Instructions------------\n* Press setup\n* Turn use-mouse-to-point? ON\n\t(labeled with \"Here\")\n* Press go\n* Use WASD for movement\n* Use E to shoot\n* Move around (use mouse to point character) through the various rooms\n* the black gaps in the walls are exits from the room
-11
-0.0
-1
-
-TEXTBOX
-741
-469
-934
-581
-use-mouse-to-point? makes your character always face toward the mouse. As a result, W moves toward the mouse, S moves away, and A and D move left and right in relation to the mouse.
-11
-0.0
-1
-
-TEXTBOX
-383
-477
-533
-589
-watch-character is NOT a game setting the player will probably be able to control. However, it is an interesting potential way of making the game more difficult, and we are exploring options related to that.
-11
-0.0
-1
-
-TEXTBOX
-837
-19
-987
-37
-We don't have a name yet :)
-11
-0.0
-1
-
-TEXTBOX
-828
-64
-978
-358
-A few notes on what is unfinished, and what we plan on adding before the final submission:\n\n* Incorporating skins and textures to make the game look better\n* Incoporating the hostile mobs program (which is already near-completion on a different file) into this one\n* Adding a melee combat feature\n\nRight now, there are some placeholders. For example, the way the main character looks and the texture of the background.
-11
-0.0
-1
-
-TEXTBOX
-1
-476
-207
-574
-Right now, you can only move between the 5 rooms on each floor - but there are 4 floors (and 1 more in development)! Use this slider then restart the game to see different floors.
-11
-0.0
-1
-
 SLIDER
-1
-565
-173
-598
+15
+239
+187
+272
 Start-Level
 Start-Level
 0
 3
-3.0
+0.0
 1
 1
 NIL
 HORIZONTAL
 
+BUTTON
+819
+62
+948
+95
+Knight
+set-character-knight
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+819
+93
+948
+126
+Archer
+set-character-archer
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+818
+125
+948
+158
+Wizard
+set-character-wizard
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
 TEXTBOX
-552
-510
-729
-606
-Here /|\\\n         ||
-40
+443
+488
+593
+506
+Are these needed?
+11
 0.0
 1
 
@@ -1186,6 +1242,11 @@ true
 0
 Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
+a
+false
+0
+Polygon -13345367 true false 120 60 135 15 150 15 165 60 150 60 150 45 135 45 135 60 120 60 120 60 120 60
+
 airplane
 true
 0
@@ -1227,6 +1288,15 @@ Circle -16777216 true false 135 90 30
 Line -16777216 false 150 105 195 60
 Line -16777216 false 150 105 105 60
 
+butto
+false
+0
+Polygon -13345367 true false 15 60 45 60 50 46 33 39 50 28 45 15 15 15 15 15
+Polygon -13345367 true false 60 15 60 60 105 60 105 15 90 15 90 45 75 45 75 15 60 15 60 15 60 15
+Polygon -13345367 true false 135 60 135 30 120 30 120 15 165 15 165 30 150 30 150 60
+Polygon -13345367 true false 195 60 210 60 210 45 210 30 225 30 225 15 180 15 180 30 195 30 195 60
+Polygon -13345367 true false 240 15 240 60 285 60 285 15 240 15 240 15
+
 car
 false
 0
@@ -1247,6 +1317,21 @@ false
 0
 Circle -7500403 true true 0 0 300
 Circle -16777216 true false 30 30 240
+
+click
+false
+0
+Rectangle -13345367 true false 15 15 30 30
+Rectangle -13345367 true false 15 30 30 45
+Polygon -13345367 true false 15 45 15 45 15 60 60 60 60 45 30 45 30 30 60 30 60 15 30 15 30 15 15 15 15 60 15 60 15 45
+Polygon -13345367 true false 75 15 75 60 120 60 120 45 90 45 90 15
+Polygon -13345367 true false 135 15 135 60 150 60 150 15 135 15 135 15 135 15
+Polygon -13345367 true false 165 45 165 45 165 60 210 60 210 45 180 45 180 30 210 30 210 15 180 15 180 15 165 15 165 60 165 60 165 45
+Polygon -13345367 true false 225 15 225 60 240 60 240 15
+Polygon -13345367 true false 240 30 255 15 255 30 240 45 240 30 240 30 240 30 240 45 240 45
+Polygon -13345367 true false 255 60 255 45 240 30 240 45 255 60 255 60
+Polygon -13345367 true false 255 45 270 60 255 60
+Polygon -13345367 true false 255 30 270 15 255 15
 
 cow
 false
@@ -1331,6 +1416,19 @@ Rectangle -16777216 true false 120 210 180 285
 Polygon -7500403 true true 15 120 150 15 285 120
 Line -16777216 false 30 120 270 120
 
+knight
+false
+0
+Rectangle -13345367 true false 32 90 272 195
+Polygon -16777216 true false 37 102 37 185 46 185 47 155 66 181 77 183 49 145 75 114 80 106 63 106 48 133 49 105
+Polygon -16777216 true false 84 104 82 182 93 184 95 129 114 182 125 181 123 108 114 108 115 157 97 107 88 107
+Polygon -16777216 true false 139 108 139 180 146 180 148 105
+Polygon -16777216 true false 134 273
+Rectangle -13345367 true false 201 119 227 147
+Polygon -16777216 true false 198 138 189 139 188 132 184 128 177 124 171 125 164 128 163 135 162 140 160 147 160 155 163 164 167 169 175 171 184 170 188 166 190 159 183 159 177 159 174 159 176 151 198 151 199 155 199 160 197 170 192 178 185 179 177 180 169 180 159 178 155 171 153 164 152 152 152 144 153 135 156 127 160 120 168 114 175 112 182 112 187 113 189 116 189 118 194 127 197 131
+Polygon -16777216 true false 202 107 203 180 210 179 209 153 221 153 221 178 229 178 231 110 224 110 220 144 211 144 212 112
+Polygon -16777216 true false 255 177 247 177 248 121 236 121 236 113 270 113 270 122 257 123
+
 leaf
 false
 0
@@ -1347,6 +1445,11 @@ true
 0
 Line -7500403 true 150 0 150 150
 
+n
+false
+0
+Polygon -13345367 true false 15 60 15 15 60 15 60 60 45 60 45 30 30 30 30 60 15 60 15 60
+
 pentagon
 false
 0
@@ -1360,6 +1463,67 @@ Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300
 Rectangle -7500403 true true 127 79 172 94
 Polygon -7500403 true true 195 90 240 150 225 180 165 105
 Polygon -7500403 true true 105 90 60 150 75 180 135 105
+
+person graduate
+false
+0
+Circle -16777216 false false 39 183 20
+Polygon -1 true false 50 203 85 213 118 227 119 207 89 204 52 185
+Circle -7500403 true true 110 5 80
+Rectangle -7500403 true true 127 79 172 94
+Polygon -8630108 true false 90 19 150 37 210 19 195 4 105 4
+Polygon -8630108 true false 120 90 105 90 60 195 90 210 120 165 90 285 105 300 195 300 210 285 180 165 210 210 240 195 195 90
+Polygon -1184463 true false 135 90 120 90 150 135 180 90 165 90 150 105
+Line -2674135 false 195 90 150 135
+Line -2674135 false 105 90 150 135
+Polygon -1 true false 135 90 150 105 165 90
+Circle -1 true false 104 205 20
+Circle -1 true false 41 184 20
+Circle -16777216 false false 106 206 18
+Line -2674135 false 208 22 208 57
+
+person police
+false
+0
+Polygon -1 true false 124 91 150 165 178 91
+Polygon -13345367 true false 134 91 149 106 134 181 149 196 164 181 149 106 164 91
+Polygon -13345367 true false 180 195 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285
+Polygon -13345367 true false 120 90 105 90 60 195 90 210 116 158 120 195 180 195 184 158 210 210 240 195 195 90 180 90 165 105 150 165 135 105 120 90
+Rectangle -7500403 true true 123 76 176 92
+Circle -7500403 true true 110 5 80
+Polygon -13345367 true false 150 26 110 41 97 29 137 -1 158 6 185 0 201 6 196 23 204 34 180 33
+Line -13345367 false 121 90 194 90
+Line -16777216 false 148 143 150 196
+Rectangle -16777216 true false 116 186 182 198
+Rectangle -16777216 true false 109 183 124 227
+Rectangle -16777216 true false 176 183 195 205
+Circle -1 true false 152 143 9
+Circle -1 true false 152 166 9
+Polygon -1184463 true false 172 112 191 112 185 133 179 133
+Polygon -1184463 true false 175 6 194 6 189 21 180 21
+Line -1184463 false 149 24 197 24
+Rectangle -16777216 true false 101 177 122 187
+Rectangle -16777216 true false 179 164 183 186
+
+person soldier
+false
+0
+Rectangle -7500403 true true 127 79 172 94
+Polygon -10899396 true false 105 90 60 195 90 210 135 105
+Polygon -10899396 true false 195 90 240 195 210 210 165 105
+Circle -7500403 true true 110 5 80
+Polygon -10899396 true false 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Polygon -6459832 true false 120 90 105 90 180 195 180 165
+Line -6459832 false 109 105 139 105
+Line -6459832 false 122 125 151 117
+Line -6459832 false 137 143 159 134
+Line -6459832 false 158 179 181 158
+Line -6459832 false 146 160 169 146
+Rectangle -6459832 true false 120 193 180 201
+Polygon -6459832 true false 122 4 107 16 102 39 105 53 148 34 192 27 189 17 172 2 145 0
+Polygon -16777216 true false 183 90 240 15 247 22 193 90
+Rectangle -6459832 true false 114 187 128 208
+Rectangle -6459832 true false 177 187 191 208
 
 plant
 false
