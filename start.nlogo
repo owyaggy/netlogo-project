@@ -1,28 +1,42 @@
-;; Main issue: The relax border is somehow triggering even if the player is in the radius
+;; Add: magic mobs, bosses?, player meele attacks, change around numbers to be correct
 
-globals [hp time]
+globals [hp time ar1 damage1]
 breed [mobs mob]
 breed [players player]
-mobs-own [damage health speed as relaxed? x y t]
-players-own [defense sped]
+breed [mprojectiles mprojectile]
+patches-own[poisoned?]
+mobs-own [damage as mspeed relaxed? ar x y t class]
+players-own [speed]
+mprojectiles-own[dist mar mdamage]
 to setup
   ca
   create-players 1 [set shape "person" set size 10]
   set hp 15
 
-  create-mobs 5 [setxy random-xcor random-ycor set shape "spider" set size 14 set damage 3 set speed 0.5 set as 8 set relaxed? true set t random 50 + 30]
+  create-mobs 5 [setxy random-xcor random-ycor set shape "spider" set size 10.69420 set damage 3 set mspeed 0.5 set as 8 set relaxed? true
+    set t random 50 + 30 set ar 8 set class "meele"]
+  create-mobs 3 [setxy random-xcor random-ycor set shape "bug" set size 10.69420 set damage 2 set mspeed 0.5 set as 4 set ar 25 set relaxed? true
+    set t random 20 + 30 set class "ranged"]
+  create-mobs 3 [setxy random-xcor random-ycor set shape "butterfly" set size 10.69420 set damage 1 set mspeed 0.5 set relaxed? true set t random 20 + 30 set class "magic"]
+
   ask patches [ask mobs-here [set x pxcor set y pycor]]
   ask patches [ifelse (pxcor mod 6 = 0 or pxcor mod 6 = 1 or pxcor mod 6 = 2) and (pycor mod 6 = 0 or pycor mod 6 = 1 or pycor mod 6 = 2)[set pcolor black] [set pcolor blue]]
 end
 to attack
-  ask mobs [ifelse count players in-radius 1 > 0 and as <= 0 [set hp hp - damage set as 8 ask player 0[fd 10 set sped 0.6]] [set as as - 1] ]
+  ask mobs [if class = "meele"  [ifelse count players in-radius ar > 0 and as <= 0 [set hp hp - damage set as 8 ask player 0[fd 10 set speed 0.6]] [set as as - 1]]]
+  ask mobs [set ar1 ar set damage1 damage if class = "ranged"
+    [ifelse count players in-radius ar > 0 and as <= 0
+      [ask patch xcor ycor [sprout-mprojectiles 1 [face player 0 set mar ar1 set size 5 set mdamage damage1]] set as 8]
+      [set as as - 1]]]
+  ;;ask mobs [if class = "magic"
+
 
 
 end
 
 to chase
   ask mobs [if count players in-radius 45 > 0 [set relaxed? false]]
-  ask mobs [ifelse count players in-radius 35 > 0 [face player 0 fd speed] [ifelse relaxed? = true [relax] [rt random t lt random t fd 0.5]] ]
+  ask mobs [ifelse count players in-radius 35 > 0 [face player 0 fd mspeed] [ifelse relaxed? = true [relax] [rt random t lt random t fd 0.5]] ]
 
 end
 
@@ -31,30 +45,40 @@ to relax
 
   ask mobs [
     rt random t lt random t fd 0.5
-    if [pxcor] of patch-here  > (x + 40) or [pxcor] of patch-here < (x - 40) or [pycor] of patch-here > (y + 40) or [pycor] of patch-here < (y - 40) and relaxed? = true [face patch x y]]
+    if [pxcor] of patch-here  > (x + 40) or [pxcor] of patch-here < (x - 40) or [pycor] of patch-here > (y + 40) or [pycor] of patch-here < (y - 40) and relaxed? = true
+    [face patch x y]]
 
 
 
 end
 to wander
   every .125 [
+    ask mobs [set color orange]
+    ask mprojectiles [set color orange]
   if hp <= 0 [ask players [setxy random-xcor random-ycor set color brown set hp 15]]
   set time time + 1
     chase
     attack
+    rchase
     if time > 50
     [set time 0]
     ask mobs [if [pxcor] of patch-here = min-pxcor or [pxcor] of patch-here = max-pxcor or [pycor] of patch-here = min-pycor or [pycor] of patch-here = max-pycor
       [ifelse random 2 = 0 [rt 150] [lt 150]]]
   ]
+
+  every 1 [
+    if hp < 15 [set hp hp + 1]
+  ]
+end
+
+to rchase
+  ask mprojectiles [fd 5.5 set dist dist + 1]
+  ask mprojectiles [if dist > mar [die]]
+  ask mprojectiles [if count players in-radius size > 0 [set hp hp - 2]]
 end
 
 to-report playerHP
   report hp
-end
-
-to-report Clock
-  report time
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
