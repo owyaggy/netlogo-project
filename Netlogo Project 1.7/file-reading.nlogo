@@ -1,3 +1,7 @@
+;; This file is just used as a demonstration of how file-reading works.
+;; It does not actually have an effect on the project, and it can be deleted
+;; without causing harm to the project.
+
 globals[exits line]
 
 to setup
