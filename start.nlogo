@@ -1,11 +1,12 @@
-;; Add: magic mobs, bosses?, player meele attacks, change around numbers to be correct
+;; Add: player meele attacks, change around numbers to be correct
+;; magic mobs added that leave a poison trail that follows the player. they don't disappear rn but ill add that soon
 
 globals [hp time ar1 damage1]
 breed [mobs mob]
 breed [players player]
 breed [mprojectiles mprojectile]
-patches-own[poisoned?]
-mobs-own [damage as mspeed relaxed? ar x y t class]
+patches-own[poisoned? pdamage]
+mobs-own [damage as sas mspeed relaxed? ar x y t class]
 players-own [speed]
 mprojectiles-own[dist mar mdamage]
 to setup
@@ -13,22 +14,23 @@ to setup
   create-players 1 [set shape "person" set size 10]
   set hp 15
 
-  create-mobs 5 [setxy random-xcor random-ycor set shape "spider" set size 10.69420 set damage 3 set mspeed 0.5 set as 8 set relaxed? true
-    set t random 50 + 30 set ar 8 set class "meele"]
-  create-mobs 3 [setxy random-xcor random-ycor set shape "bug" set size 10.69420 set damage 2 set mspeed 0.5 set as 4 set ar 25 set relaxed? true
-    set t random 20 + 30 set class "ranged"]
-  create-mobs 3 [setxy random-xcor random-ycor set shape "butterfly" set size 10.69420 set damage 1 set mspeed 0.5 set relaxed? true set t random 20 + 30 set class "magic"]
+ ;; create-mobs 5 [setxy random-xcor random-ycor set shape "spider" set size 10.69420 set damage 3 set mspeed 0.5 set as 8 set sas 8 set relaxed? true
+    ;;set t random 50 + 30 set ar 8 set class "meele"]
+  ;;create-mobs 3 [setxy random-xcor random-ycor set shape "bug" set size 10.69420 set damage 2 set mspeed 0.5 set as 4 set sas 4 set ar 25 set relaxed? true
+    ;;wset t random 20 + 30 set class "ranged"]
+  create-mobs 3 [setxy random-xcor random-ycor set shape "butterfly" set size 10.69420 set damage 1 set mspeed 0.5 set relaxed? true set t random 20 + 30 set class "magic" set ar 10]
 
   ask patches [ask mobs-here [set x pxcor set y pycor]]
-  ask patches [ifelse (pxcor mod 6 = 0 or pxcor mod 6 = 1 or pxcor mod 6 = 2) and (pycor mod 6 = 0 or pycor mod 6 = 1 or pycor mod 6 = 2)[set pcolor black] [set pcolor blue]]
+  ;;ask patches [ifelse (pxcor mod 6 = 0 or pxcor mod 6 = 1 or pxcor mod 6 = 2) and (pycor mod 6 = 0 or pycor mod 6 = 1 or pycor mod 6 = 2)[set pcolor black] [set pcolor blue]]
 end
 to attack
-  ask mobs [if class = "meele"  [ifelse count players in-radius ar > 0 and as <= 0 [set hp hp - damage set as 8 ask player 0[fd 10 set speed 0.6]] [set as as - 1]]]
+  ask mobs [if class = "meele"  [ifelse count players in-radius ar > 0 and as <= 0 [set hp hp - damage set as sas ask player 0[fd 10 set speed 0.6]] [set as as - 1]]]
   ask mobs [set ar1 ar set damage1 damage if class = "ranged"
     [ifelse count players in-radius ar > 0 and as <= 0
-      [ask patch xcor ycor [sprout-mprojectiles 1 [face player 0 set mar ar1 set size 5 set mdamage damage1]] set as 8]
+      [ask patch xcor ycor [sprout-mprojectiles 1 [face player 0 set mar ar1 set size 5 set mdamage damage1]] set as sas]
       [set as as - 1]]]
-  ;;ask mobs [if class = "magic"
+  ask mobs [if class = "magic" [ifelse count players in-radius ar > 0 and as <= 0 [set damage1 damage set as 8 ask player 0 [ask n-of 100 patches in-radius 8
+    [set poisoned? true set pdamage damage1]]]   [set as as - 1]]]
 
 
 
@@ -60,6 +62,7 @@ to wander
     chase
     attack
     rchase
+    poison
     if time > 50
     [set time 0]
     ask mobs [if [pxcor] of patch-here = min-pxcor or [pxcor] of patch-here = max-pxcor or [pycor] of patch-here = min-pycor or [pycor] of patch-here = max-pycor
@@ -77,6 +80,10 @@ to rchase
   ask mprojectiles [if count players in-radius size > 0 [set hp hp - 2]]
 end
 
+
+to poison
+  ask player 0[ask patch-here [if poisoned? = true [set pcolor red set hp hp - pdamage]]]
+end
 to-report playerHP
   report hp
 end
@@ -149,17 +156,6 @@ MONITOR
 276
 NIL
 playerHP
-17
-1
-11
-
-MONITOR
-50
-312
-107
-357
-NIL
-Clock
 17
 1
 11
@@ -591,7 +587,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.1
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
