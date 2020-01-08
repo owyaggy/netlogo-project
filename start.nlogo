@@ -1,4 +1,5 @@
-;; Add: magic mobs, bosses?, player meele attacks, change around numbers to be correct
+;; Add: player meele attacks, change around numbers to be correct
+;; magic mobs added that leave a poison trail that follows the player. they don't disappear rn but ill add that soon
 
 globals [hp time ar1 damage1]
 breed [mobs mob]
