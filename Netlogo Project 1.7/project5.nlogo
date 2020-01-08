@@ -83,6 +83,15 @@ globals
   lb-exit ;; same, but for bottom
   level-load ;; which level is being loaded, 0-24
 
+  ;; Arrow animation, tutorial stuff
+
+  arx ;; xpos
+  ary ;; ypos
+  ars ;; speed
+  ard ;; direction
+  watching
+  w-pressed ;; if the player has tried to press w yet
+
   ;; Testing:
 
   test
@@ -574,6 +583,7 @@ end
 
 to setup
   ca
+  clear
   load-levels
   set-variables
   adjust-world
@@ -584,7 +594,9 @@ end
 
 to set-variables
   set one-time 0
-  set test false
+  set w-pressed false
+  set watching false
+  set test 0
   set document []
   set save "None"
   set r-exit "None"
@@ -607,7 +619,7 @@ to set-variables
   set nmx mouse-xcor
   set nmy mouse-ycor
   set strafe-realign false ;; every time the character strafes, they DO NOT face toward the mouse
-  set ptype 0 ;; default projectile type
+  set ptype 1 ;; default projectile type
   set ptimer 0
   set ptimer-max 5000 ;; modify this number to change the time (in ticks) before a projectile can be fired again
   set projectile-can-fire true
@@ -676,7 +688,7 @@ to go
   if ptimer = 0 [set projectile-can-fire true]
   if ptimer != 0 [set projectile-can-fire false]
   if projectile-can-fire = false [set ptimer (ptimer + 1) if ptimer >= ptimer-max [set ptimer 0 set projectile-can-fire true]]
-  ifelse watch-character = true [watch turtle 0] [reset-perspective]
+  ifelse watch-character = true [watch turtle 0] [if watching = false [reset-perspective]]
   sense-exits
   ifelse use-mouse-to-point? = true [set mouse-based true] [set mouse-based false]
   ;;]
@@ -695,7 +707,8 @@ to point ;; points character to mouse
 end
 
 to w ;; if w pressed / "forward"
-  if player-type != 0 [ask turtle 0 [fd speed check]]
+  if player-type != 0 and one-time > 2 [ask turtle 0 [fd speed check]]
+  if one-time = 3 [set one-time 4]
 end
 
 to a ;; if a pressed / "left"
@@ -768,10 +781,14 @@ to sense-exits
     advance-level
   ]
   if exit-on = "Top" [
-    carefully [
-      set room read-from-string item 2 t-exit
-    ] [set room room]
-    advance-level
+    ifelse room = -1 [
+      user-message "Are you sure you want to exit the tutorial?"w
+    ] [
+      carefully [
+        set room read-from-string item 2 t-exit
+      ] [set room room]
+      advance-level
+    ]
   ]
   if exit-on = "Bottom" [
     carefully [
@@ -793,6 +810,7 @@ end
 
 to setup-projectile
   if ptype = 0 [set shape "circle" set color white set size 20 set pspeed 0.1]
+  if ptype = 1 [set shape "circle" set color black set size 15 set pspeed 0.1]
 end
 
 to shoot
@@ -817,6 +835,7 @@ to firing
     fd pspeed
     ;; Projectile-type specific behavior:
     if ptype = 0 [ if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die] ]
+    if ptype = 1 [ if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die] ]
   ]
 end
 
@@ -911,17 +930,122 @@ to set-character-wizard
 end
 
 to tutorial
-  if one-time = 0 [show "Select a character on the right!" set one-time 1]
+  set test test + 1
+  if one-time = 0 [clear set arx 220 set ard 1 show "Select a character on the right!" set one-time 1 crt 1 [set shape "arrow" set heading 90 set color blue set size 85 setxy arx 140]]
   ask turtle 0 [
     if player-type = 1 [set shape "person police" set hidden? false]
     if player-type = 2 [set shape "person soldier" set hidden? false]
     if player-type = 3 [set shape "person graduate" set hidden? false]
   ]
+  if player-type = 0 [
+    ask turtle 1 [
+      if ard = 1 [ set arx arx + 0.005 ]
+      if ard = 0 [ set arx arx - 0.005 ]
+      if arx > 240 [ set ard 0 ]
+      if arx < 200 [ set ard 1 ]
+      set xcor arx
+    ]
+  ]
   if one-time = 1 and player-type != 0 [
-    show "You can change your character until you exit this room."
-    show "Click right next to the world, then use your mouse and w to move."
+    ask turtle 1 [die]
+    clear
+    show "First click your mouse outside of the world."
+    show "Then move your mouse to the highlighted area."
     set one-time 2
   ]
+  if one-time = 2 [
+    watch patch 250 -150 set watching true
+    if mouse-xcor > 235 and mouse-xcor < 265 and mouse-ycor < -135 and mouse-ycor > -165 [
+      set watching false
+      reset-perspective
+      set w-pressed false
+      clear
+      show "Good job! Now press W, and try holding it down"
+      set one-time 3
+    ]
+  ]
+  ;; W being pressed when one-time is 3 will set one-time to 4
+  if one-time = 4 [
+    clear
+    show "Good job!"
+    show "Now you can move your mouse around to change direction,"
+    show "and press W to move forward."
+    set one-time 5
+    set arx 0
+  ]
+  if one-time = 5 [
+    set arx arx + 1
+    if arx > 75000 [set one-time 6 set arx 0]
+  ]
+  if one-time = 6 [
+    clear
+    show "Each character has a different combat specialty."
+    set one-time 7
+  ]
+  if one-time = 7 [
+    if player-type = 1 [show "Your specialty is melee combat."]
+    if player-type = 2 [show "Your specialty is range combat."]
+    if player-type = 3 [show "Your specialty is magic-type combat."]
+    show "Press E to try it out!"
+    set one-time 8
+  ]
+  if one-time = 8 [
+    ;; Need to create visual for melee combat
+    if player-type = 1 [
+      ;; Instructions for how to use melee combat
+      set one-time 110 ;; one-time specific for knight
+    ]
+    if player-type = 2 [
+      ;; Instructions for how to use range combat
+      show "When you press E, a projectile will be fired in the direction of your mouse."
+      show "As you advance through the game, you'll find better weapons."
+      set one-time 120 ;; one-time specific for archer
+    ]
+    if player-type = 3 [
+      ;; Instructions for how to use magic combat
+      set one-time 130 ;; one-time specific for wizard
+    ]
+  ]
+  if one-time = 110 [ ;; one-time specific for knight
+  ]
+  if one-time = 120 [ ;; one-time specific for archer
+    ;; Create target that needs to be destroyed by being hit 5 times
+    cro 1 [set shape "target" set size 40 setxy 0 0]
+    clear
+    show "Destroy this target!"
+    set ars 0.01
+    set ard 280
+    set one-time 121
+  ]
+  if one-time = 121 [
+    ask turtles with [shape = "target"] [
+      set heading ard
+      fd ars
+      if xcor - 20 < min-pxcor + side-width [
+        set ard 360 - ard
+      ]
+      if xcor + 20 > max-pxcor - side-width [
+        set ard 360 - ard
+      ]
+      if ycor + 20 > max-pycor - side-width [
+        set ard 180 - ard
+      ]
+      if ycor - 20 < min-pycor + side-width [
+        set ard 180 - ard
+      ]
+      ;; CURRENTLY UNFINISHED -
+      ;; goal is to make moving target with health that bounces off walls,
+      ;; and that can be shot and killed with 5 shots
+    ]
+  ]
+  if one-time = 130 [ ;; one-time specific for wizard
+  ]
+  ;; Add ability to try out new characters by using:
+  ;; if one-time > x in the button for each character choice, set one-time 7
+end
+
+to clear
+  repeat 30 [show ""]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -969,10 +1093,10 @@ NIL
 1
 
 BUTTON
-53
-68
-135
-101
+56
+95
+138
+128
 Forward
 w
 NIL
@@ -1076,10 +1200,10 @@ level
 11
 
 BUTTON
-60
-114
-129
-147
+64
+133
+133
+166
 NIL
 attack
 NIL
@@ -1141,9 +1265,9 @@ HORIZONTAL
 
 BUTTON
 819
-62
+75
 948
-95
+108
 Knight
 set-character-knight
 NIL
@@ -1158,9 +1282,9 @@ NIL
 
 BUTTON
 819
-93
+106
 948
-126
+139
 Archer
 set-character-archer
 NIL
@@ -1175,9 +1299,9 @@ NIL
 
 BUTTON
 818
-125
+138
 948
-158
+171
 Wizard
 set-character-wizard
 NIL
@@ -1199,6 +1323,59 @@ Are these needed?
 11
 0.0
 1
+
+TEXTBOX
+842
+58
+992
+76
+Pick a character:
+11
+0.0
+1
+
+MONITOR
+838
+297
+928
+342
+NIL
+mouse-xcor
+17
+1
+11
+
+MONITOR
+840
+355
+929
+400
+NIL
+mouse-ycor
+17
+1
+11
+
+TEXTBOX
+31
+55
+208
+83
+Press setup, then go to start.
+11
+0.0
+1
+
+MONITOR
+34
+327
+91
+372
+NIL
+ard
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1572,11 +1749,11 @@ Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 
 target
 false
 0
-Circle -7500403 true true 0 0 300
-Circle -16777216 true false 30 30 240
-Circle -7500403 true true 60 60 180
-Circle -16777216 true false 90 90 120
-Circle -7500403 true true 120 120 60
+Circle -2674135 true false 0 0 300
+Circle -1 true false 30 30 240
+Circle -2674135 true false 60 60 180
+Circle -1 true false 90 90 120
+Circle -2674135 true false 120 120 60
 
 tree
 false
