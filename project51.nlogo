@@ -115,7 +115,7 @@ breed [;;enemy breed
 
 breed [players player]
 breed [mprojectiles mprojectile]
-
+mprojectiles-own [dist mar damage2]
 patches-own[;;for when magic mobs poison patches
   poisoned? pdamage dtime]
 mobs-own [
@@ -138,7 +138,7 @@ mobs-own [
   t
   ;; meele, ranged, or magic
   class]
-mprojectiles-own[dist mar mdamage]
+
 
 to load-levels
   set lexits []
@@ -627,12 +627,12 @@ to setup
 end
 to setup1
 
- create-mobs 1 [setxy random-xcor random-ycor set shape "spider" set size 20.69420 set damage 3 set mspeed 0.1 set as 8 set sas 300 set relaxed? true
-  set t random 50 + 30 set ar 18 set class "meele"]
-  create-mobs 1 [setxy random-xcor random-ycor set shape "bug" set size 20.69420 set damage 2 set mspeed 0.1 set as 4 set sas 200 set ar 50 set relaxed? true
-  set t random 20 + 30 set class "ranged"]
-  create-mobs 1 [setxy random-xcor random-ycor set shape "butterfly" set size 20.69420 set damage 1 set mspeed 0.1 set relaxed? true
-    set t random 20 + 30 set class "magic" set ar 30]
+ ;;create-mobs 1 [setxy random-xcor random-ycor set shape "spider" set size 30.69420 set damage 3 set mspeed 0.5 set as 8 set sas 50 set relaxed? true
+   ;;set ar 30 set class "meele"]
+  ;;create-mobs 1 [setxy random-xcor random-ycor set shape "bug" set size 20.69420 set damage 2 set mspeed 0.5 set as 4 set sas 200 set ar 150 set relaxed? true
+   ;; set class "ranged"]
+  create-mobs 3 [setxy random-xcor random-ycor set shape "butterfly" set size 20.69420 set damage 1 set mspeed 0.8 set relaxed? true
+    set class "magic" set ar 80]
 
   ask patches [ask mobs-here [set x pxcor set y pycor]]
 end
@@ -735,7 +735,8 @@ to go
   ifelse watch-character = true [watch turtle 0] [if watching = false [reset-perspective]]
   sense-exits
   ifelse use-mouse-to-point? = true [set mouse-based true] [set mouse-based false]
-  ask turtles [wander]
+
+  every .125 [ask turtles [wander]]
   ;;]
 end
 
@@ -854,8 +855,8 @@ to hit
 end
 
 to setup-projectile
-  if ptype = 0 [set shape "circle" set color white set size 20 set pspeed 1]
-  if ptype = 1 [set shape "circle" set color black set size 15 set pspeed 1]
+  if ptype = 0 [set shape "circle" set color white set size 20 set pspeed .1]
+  if ptype = 1 [set shape "circle" set color black set size 15 set pspeed .1]
 end
 
 to shoot
@@ -1100,18 +1101,18 @@ to mattack
   ask mobs [if class = "meele"  [ifelse count players in-radius ar > 0 and as <= 0 [set hp hp - damage set as sas ask player 0[fd 10]] [set as as - 1]]]
   ask mobs [set ar1 ar set damage1 damage if class = "ranged"
     [ifelse count players in-radius ar > 0 and as <= 0
-      [ask patch xcor ycor [sprout-mprojectiles 1 [face player 0 set mar ar1 set size 5 set mdamage damage1]] set as sas]
+      [ask patch xcor ycor [sprout-mprojectiles 1 [face player 0 set mar ar1 set size 15 set damage2 damage1]] set as sas]
       [set as as - 1]]]
-  ask mobs [if class = "magic" [ifelse count players in-radius ar > 0 and as <= 0 [set damage1 damage set as 8 ask player 0 [ask patches in-radius 8
-    [set poisoned? true set pdamage damage1]]]   [set as as - 1]]]
+  ask mobs [if class = "magic" [ifelse count players in-radius ar > 0 and as <= 0 [set damage1 damage set as sas ask patches in-cone 20 90
+    [set poisoned? true set pdamage damage1]]   [set as as - 1]]]
 
 
 
 end
 
 to chase
-  ask mobs [if count players in-radius 45 > 0 [set relaxed? false]]
-  ask mobs [ifelse count players in-radius 35 > 0 [face player 0 fd mspeed] [ifelse relaxed? = true [relax] [rt random t lt random t fd mspeed]] ]
+  ask mobs [if count players in-radius 80 > 0 [set relaxed? false]]
+  ask mobs [ifelse count players in-radius 75 > 0 [face player 0 fd mspeed] [ifelse relaxed? = true [relax] [rt random 60 lt random 60 fd mspeed]] ]
 
 end
 
@@ -1119,9 +1120,9 @@ end
 to relax
 
   ask mobs [
-    rt random t lt random t fd mspeed
-    if [pxcor] of patch-here  > (x + 120) or [pxcor] of patch-here < (x - 120) or [pycor] of patch-here > (y + 40) or [pycor] of patch-here < (y - 40) and relaxed? = true
-    [face patch x y]]
+    rt random 60 lt random 60 fd mspeed]
+   ;; if [pxcor] of patch-here  > (x + 120) or [pxcor] of patch-here < (x - 120) or [pycor] of patch-here > (y + 40) or [pycor] of patch-here < (y - 40) and relaxed? = true
+    ;;[face patch x y]]
 
 
 
@@ -1145,7 +1146,7 @@ end
 to rchase
   ask mprojectiles [fd 5.5 set dist dist + 1]
   ask mprojectiles [if dist > mar [die]]
-  ask mprojectiles [if count players in-radius size > 0 [set hp hp - 2]]
+  ask mprojectiles [if count players in-radius size > 0 [set hp hp - damage2]]
 end
 
 
@@ -1352,7 +1353,7 @@ use-mouse-to-point?
 TEXTBOX
 213
 10
-822
+844
 53
 TITLE OF OUR DUNGEON GAME
 40
@@ -1523,6 +1524,28 @@ MONITOR
 588
 NIL
 clock
+17
+1
+11
+
+MONITOR
+192
+524
+319
+569
+NIL
+projectile-can-fire
+17
+1
+11
+
+MONITOR
+719
+538
+776
+583
+NIL
+ptimer
 17
 1
 11
