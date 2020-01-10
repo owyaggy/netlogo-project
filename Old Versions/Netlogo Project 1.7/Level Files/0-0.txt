@@ -1,0 +1,6 @@
+Level 0-0
+
+Exits: Right Top
+
+Right: 0-2
+Top: 0-1

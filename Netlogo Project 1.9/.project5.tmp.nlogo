@@ -91,6 +91,8 @@ globals
   ard ;; direction
   watching
   w-pressed ;; if the player has tried to press w yet
+  old-player-type
+  fire-length
 
   ;; Testing:
 
@@ -105,6 +107,11 @@ projectiles-own[
   pspeed ;; p is a prefix designating projectiles-________ (e.g. speed, heading)
   pheading
   ;; Need more
+]
+
+turtles-own [
+  target-health
+  on-fire
 ]
 
 to load-levels
@@ -593,7 +600,10 @@ to setup
 end
 
 to set-variables
+  set fire-length 25000
+  ask turtles [set on-fire 0]
   set one-time 0
+  set old-player-type 10
   set w-pressed false
   set watching false
   set test 0
@@ -682,6 +692,8 @@ to go
   ifelse mouse-based = true [
     directional
   ] [ask turtle 0 [set heading 0]]
+  show-health
+  burning
   firing
   ;; if mouse-down? [shoot] ;; this is too laggy
   if count projectiles > 75 [ask projectiles [die] show "Too many projectiles were fired."]
@@ -780,15 +792,11 @@ to sense-exits
     ] [set room room]
     advance-level
   ]
-  if exit-on = "Top" [
-    ifelse room = -1 [
-      user-message "Are you sure you want to exit the tutorial?"w
-    ] [
-      carefully [
-        set room read-from-string item 2 t-exit
-      ] [set room room]
-      advance-level
-    ]
+  if exit-on = "Top" and (room != -1 or one-time = 10) [
+    carefully [
+      set room read-from-string item 2 t-exit
+    ] [set room room]
+     advance-level
   ]
   if exit-on = "Bottom" [
     carefully [
@@ -798,9 +806,13 @@ to sense-exits
   ]
 end
 
+to show-health
+end
+
 to attack
   if player-type = 1 [hit]
   if player-type = 2 [shoot]
+  if player-type = 3 [shoot]
 end
 
 to hit
@@ -811,10 +823,11 @@ end
 to setup-projectile
   if ptype = 0 [set shape "circle" set color white set size 20 set pspeed 0.1]
   if ptype = 1 [set shape "circle" set color black set size 15 set pspeed 0.1]
+  if ptype = 2 [set shape "fireball" set size 120 set pspeed 0.1]
 end
 
 to shoot
-  if projectile-can-fire = true [
+  if (projectile-can-fire = true and room != -1) or (room = -1 and one-time > 100) [
     set projectile-can-fire false
     ask turtle 0 [set ptimer 1 hatch-projectiles 1 [
       setup-projectile
@@ -835,7 +848,14 @@ to firing
     fd pspeed
     ;; Projectile-type specific behavior:
     if ptype = 0 [ if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die] ]
-    if ptype = 1 [ if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die] ]
+    if ptype = 1 [ ;; ARCHER type 1
+      if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die]
+      if count turtles with [shape = "target"] in-radius 27.5 >= 1 [ask turtles with [shape = "target"] [set target-health target-health - 20] die]
+    ]
+    if ptype = 2 [ ;; FIREBALL
+      if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die]
+      if count turtles with [shape = "target"] in-radius 27.5 >= 1 [ask turtles with [shape = "target"] [set target-health target-health - 10 set on-fire fire-length] die]
+    ]
   ]
 end
 
@@ -918,24 +938,35 @@ to set-level-number
 end
 
 to set-character-knight
-  ifelse room = -1 [set player-type 1] [show "You can't change your character now!"]
+  ifelse (room = -1 and one-time = 10) or player-type = 0 [set player-type 1] [show "You can't change your character now!"]
 end
 
 to set-character-archer
-  ifelse room = -1 [set player-type 2] [show "You can't change your character now!"]
+  ifelse (room = -1 and one-time = 10) or player-type = 0 [set player-type 2] [show "You can't change your character now!"]
 end
 
 to set-character-wizard
-  ifelse room = -1 [set player-type 3] [show "You can't change your character now!"]
+  ifelse (room = -1 and one-time = 10) or player-type = 0 [set player-type 3] [show "You can't change your character now!"]
 end
 
 to tutorial
   set test test + 1
   if one-time = 0 [clear set arx 220 set ard 1 show "Select a character on the right!" set one-time 1 crt 1 [set shape "arrow" set heading 90 set color blue set size 85 setxy arx 140]]
   ask turtle 0 [
-    if player-type = 1 [set shape "person police" set hidden? false]
-    if player-type = 2 [set shape "person soldier" set hidden? false]
-    if player-type = 3 [set shape "person graduate" set hidden? false]
+    if old-player-type = 10 [
+      if player-type = 1 [set shape "person police" set hidden? false]
+      if player-type = 2 [set shape "person soldier" set hidden? false]
+      if player-type = 3 [set shape "person graduate" set hidden? false]
+    ]
+    if old-player-type != 10 [
+      if player-type != old-player-type and one-time >= 9 and one-time < 100 [
+        if player-type = 1 [set shape "person police" set hidden? false]
+        if player-type = 2 [set shape "person soldier" set hidden? false]
+        if player-type = 3 [set shape "person graduate" set hidden? false]
+        set one-time 7
+        set old-player-type player-type
+      ]
+    ]
   ]
   if player-type = 0 [
     ask turtle 1 [
@@ -986,7 +1017,6 @@ to tutorial
     if player-type = 1 [show "Your specialty is melee combat."]
     if player-type = 2 [show "Your specialty is range combat."]
     if player-type = 3 [show "Your specialty is magic-type combat."]
-    show "Press E to try it out!"
     set one-time 8
   ]
   if one-time = 8 [
@@ -997,12 +1027,13 @@ to tutorial
     ]
     if player-type = 2 [
       ;; Instructions for how to use range combat
-      show "When you press E, a projectile will be fired in the direction of your mouse."
-      show "As you advance through the game, you'll find better weapons."
+      show "Press E to fire a projectile in the direction of your mouse."
       set one-time 120 ;; one-time specific for archer
     ]
     if player-type = 3 [
       ;; Instructions for how to use magic combat
+      show "Press E to throw a fireball in the direction of your mouse."
+      show "Note that fireballs can only harm enemies that aren't already on fire."
       set one-time 130 ;; one-time specific for wizard
     ]
   ]
@@ -1010,12 +1041,12 @@ to tutorial
   ]
   if one-time = 120 [ ;; one-time specific for archer
     ;; Create target that needs to be destroyed by being hit 5 times
-    cro 1 [set shape "target" set size 40 setxy 0 0]
-    clear
+    cro 1 [set shape "target" set size 40 setxy 0 0 set target-health 100]
     show "Destroy this target!"
     set ars 0.01
     set ard 280
     set one-time 121
+    set ptype 1
   ]
   if one-time = 121 [
     ask turtles with [shape = "target"] [
@@ -1033,15 +1064,84 @@ to tutorial
       if ycor - 20 < min-pycor + side-width [
         set ard 180 - ard
       ]
-      ;; CURRENTLY UNFINISHED -
-      ;; goal is to make moving target with health that bounces off walls,
-      ;; and that can be shot and killed with 5 shots
+      if target-health <= 0 [
+        set one-time 9
+        die
+      ]
     ]
   ]
   if one-time = 130 [ ;; one-time specific for wizard
+    cro 1 [set shape "target" set size 40 setxy 0 0 set target-health 100]
+    show "Destroy this target!"
+    set ars 0.01
+    set ard 280
+    set one-time 131
+    set ptype 2
+  ]
+  if one-time = 131 [
+    ask turtles with [shape = "target" or shape = "target-fire1" or shape = "target-fire2"] [
+      set heading ard
+      fd ars
+      if xcor - 20 < min-pxcor + side-width [
+        set ard 360 - ard
+      ]
+      if xcor + 20 > max-pxcor - side-width [
+        set ard 360 - ard
+      ]
+      if ycor + 20 > max-pycor - side-width [
+        set ard 180 - ard
+      ]
+      if ycor - 20 < min-pycor + side-width [
+        set ard 180 - ard
+      ]
+      if target-health <= 0.1 [
+        set one-time 9
+        die
+      ]
+    ]
+  ]
+  if one-time = 9 [
+    clear
+    show "You did it!"
+    show "You can try out a different character, or exit the tutorial through the top!"
+    set old-player-type player-type
+    set one-time 10
   ]
   ;; Add ability to try out new characters by using:
   ;; if one-time > x in the button for each character choice, set one-time 7
+end
+
+to skip-tutorial
+  ifelse player-type != 0 [
+    set one-time 9
+    reset-perspective
+    set watching false
+  ] [
+    show ""
+    show "You need to pick a character first!"
+  ]
+end
+
+to burning
+  ask turtles with [on-fire > 0] [
+    if shape = "target-fire1" or shape = "target-fire2" [
+      set target-health target-health - (10 / fire-length)
+    ]
+    if shape = "target" [set shape "target-fire1"]
+    if shape = "target-fire1" [
+      if random 1000 = 0 [set shape "target-fire2"]
+    ]
+    if shape = "target-fire2" [
+      if random 1000 = 0 [set shape "target-fire1"]
+    ]
+    set on-fire on-fire - 1
+    if on-fire <= 0 [
+      set on-fire 0
+      if shape = "target-fire1" or shape = "target-fire2" [
+        set shape "target"
+      ]
+    ]
+  ]
 end
 
 to clear
@@ -1249,10 +1349,10 @@ TITLE OF OUR DUNGEON GAME
 1
 
 SLIDER
-15
-239
-187
-272
+14
+241
+186
+274
 Start-Level
 Start-Level
 0
@@ -1360,22 +1460,128 @@ TEXTBOX
 31
 55
 208
-83
-Press setup, then go to start.
+97
+Press setup, then go to start.\nThe Command Center has\ninstructions!
 11
 0.0
 1
 
 MONITOR
-34
-327
-91
-372
+978
+238
+1147
+283
 NIL
-ard
+[target-health] of turtle 2
 17
 1
 11
+
+BUTTON
+819
+196
+950
+229
+Skip Tutorial
+skip-tutorial
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+743
+510
+983
+555
+NIL
+count turtles with [shape = \"fireball\"]
+17
+1
+11
+
+MONITOR
+844
+429
+1424
+474
+NIL
+[on-fire] of turtles with [shape = \"target\" or shape = \"target-fire1\" or shape = \"target-fire2\"]
+17
+1
+11
+
+BUTTON
+958
+308
+1186
+341
+Reset Target Health (for testing)
+ask turtles with [shape = \"target\"] [set target-health 1000]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+TEXTBOX
+25
+275
+175
+293
+Used to skip levels in demo
+11
+0.0
+1
+
+TEXTBOX
+950
+108
+1271
+136
+Fires arrows that do a fair amount of damage.
+11
+0.0
+1
+
+TEXTBOX
+950
+142
+1270
+184
+Throws fireballs which cause some damage and set enemy on fire, causing more damage.
+11
+0.0
+1
+
+TEXTBOX
+950
+78
+1269
+103
+Uses a sword to defeat enemies. Causes a fair amount of damage.
+11
+0.0
+1
+
+TEXTBOX
+949
+53
+1281
+75
+All characters cause the same amount of damage per attack.\n------------------------------------------------------
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1433,6 +1639,41 @@ arrow
 true
 0
 Polygon -7500403 true true 150 0 0 150 105 150 105 293 195 293 195 150 300 150
+
+basic-sword
+true
+0
+Rectangle -6459832 true false 0 285 15 300
+Rectangle -7500403 true true 0 255 45 300
+Rectangle -6459832 true false 30 240 60 270
+Rectangle -6459832 true false 45 225 75 255
+Rectangle -6459832 true false 15 270 30 285
+Rectangle -7500403 true true 45 240 60 255
+Rectangle -7500403 true true 60 210 75 225
+Rectangle -7500403 true true 45 180 60 210
+Rectangle -7500403 true true 30 150 45 180
+Rectangle -7500403 true true 60 165 60 165
+Rectangle -7500403 true true 45 150 60 165
+Rectangle -7500403 true true 60 165 75 180
+Rectangle -7500403 true true 75 180 90 210
+Rectangle -7500403 true true 90 210 120 225
+Rectangle -7500403 true true 120 225 135 240
+Rectangle -7500403 true true 135 240 150 270
+Rectangle -7500403 true true 120 255 135 270
+Rectangle -7500403 true true 90 240 120 255
+Rectangle -7500403 true true 75 225 90 240
+Polygon -6459832 true false 90 210 90 165 105 165 105 150 120 150 120 135 135 135 135 120 150 120 150 105 165 105 165 90 180 90 180 75 195 75 195 60 240 60 240 105 225 105 225 120 210 120 210 135 195 135 195 150 180 150 180 165 165 165 165 180 150 180 150 195 135 195 135 210 90 210 90 210
+Rectangle -6459832 true false 45 165 60 180
+Rectangle -6459832 true false 60 180 75 195
+Rectangle -6459832 true false 75 210 90 225
+Rectangle -6459832 true false 60 195 75 210
+Rectangle -6459832 true false 90 225 105 240
+Rectangle -6459832 true false 105 225 120 240
+Rectangle -6459832 true false 120 240 135 255
+Rectangle -7500403 true true 120 165 135 180
+Rectangle -7500403 true true 135 150 150 165
+Rectangle -7500403 true true 165 120 180 135
+Rectangle -7500403 true true 195 90 210 105
 
 box
 false
@@ -1550,6 +1791,20 @@ Circle -7500403 true true 8 8 285
 Circle -16777216 true false 60 75 60
 Circle -16777216 true false 180 75 60
 Polygon -16777216 true false 150 168 90 184 62 210 47 232 67 244 90 220 109 205 150 198 192 205 210 220 227 242 251 229 236 206 212 183
+
+fire
+false
+0
+Polygon -7500403 true true 151 286 134 282 103 282 59 248 40 210 32 157 37 108 68 146 71 109 83 72 111 27 127 55 148 11 167 41 180 112 195 57 217 91 226 126 227 203 256 156 256 201 238 263 213 278 183 281
+Polygon -955883 true false 126 284 91 251 85 212 91 168 103 132 118 153 125 181 135 141 151 96 185 161 195 203 193 253 164 286
+Polygon -2674135 true false 155 284 172 268 172 243 162 224 148 201 130 233 131 260 135 282
+
+fireball
+true
+0
+Polygon -955883 true false 135 150 150 165 149 156
+Polygon -955883 true false 135 151 138 202 148 175 156 229 165 149 165 149
+Circle -2674135 true false 135 135 30
 
 fish
 false
@@ -1754,6 +2009,30 @@ Circle -1 true false 30 30 240
 Circle -2674135 true false 60 60 180
 Circle -1 true false 90 90 120
 Circle -2674135 true false 120 120 60
+
+target-fire1
+false
+0
+Circle -2674135 true false 0 0 300
+Circle -1 true false 30 30 240
+Circle -2674135 true false 60 60 180
+Circle -1 true false 90 90 120
+Circle -2674135 true false 120 120 60
+Polygon -955883 true false 105 255 75 240 60 210 45 150 45 120 75 150 90 135 75 105 90 60 105 45 120 60 135 30 150 45 150 60 150 75 165 60 180 75 195 90 210 120 225 150 225 195 255 165 255 195 240 225 195 255 165 270 105 255 105 255
+Polygon -2674135 true false 165 270 120 240 90 210 90 165 105 120 120 150 150 90 165 120 180 150 195 195 195 225 165 270
+Polygon -955883 true false 164 270 150 254 141 243 130 215 146 216 149 192 157 213 166 210 168 221 183 204 172 238 174 249 168 258 167 264
+
+target-fire2
+false
+0
+Circle -2674135 true false 0 0 300
+Circle -1 true false 30 30 240
+Circle -2674135 true false 60 60 180
+Circle -1 true false 90 90 120
+Circle -2674135 true false 120 120 60
+Polygon -955883 true false 105 256 75 241 51 215 23 169 28 126 75 151 45 98 75 106 81 57 115 72 115 31 141 42 161 27 165 51 174 62 169 79 211 69 217 108 248 99 225 151 225 196 255 166 255 196 240 226 195 256 165 271 105 256 105 256
+Polygon -2674135 true false 165 270 120 240 75 212 90 165 105 120 120 150 150 90 177 107 207 123 195 195 195 225 165 270
+Polygon -955883 true false 163 269 149 253 135 233 129 214 142 189 149 206 166 187 165 209 173 196 177 218 171 237 173 248 167 257 166 263
 
 tree
 false

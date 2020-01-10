@@ -1,0 +1,8 @@
+Level 0-1
+
+Exits: Bottom
+
+Chests: 1
+Item: ERROR
+
+Bottom: 0-0

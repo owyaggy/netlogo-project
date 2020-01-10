@@ -1,0 +1,10 @@
+Level 2-1
+
+Exits: Bottom Top Left Right
+
+Range: 2
+
+Bottom: 2-3
+Top: 2-0
+Right: 2-4 Locked
+Left: 2-2

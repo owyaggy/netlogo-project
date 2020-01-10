@@ -1,0 +1,12 @@
+Level 1-3
+
+Exits: Left
+
+Melee: 1
+Magic: 1
+Range: 1
+
+MOB KEY
+
+Left: 1-1
+
