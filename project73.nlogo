@@ -1783,12 +1783,12 @@ playerHP
 11
 
 BUTTON
-1202
-272
-1350
-305
-setup-background
-setup\n\ncro 10 [set shape \"back1\" set size 300]\nask turtles [set heading 0]\nask turtle 1 [fd 80 set heading 90 fd 180]\nask turtle 2 [set size 150 fd 133 set heading 90 fd 45]\nask turtle 3 [fd 80 set heading -90 fd 180]\nask turtle 4 [set size 160 fd 135 set heading -90 fd 40]\nask turtle 5 [set heading 180 fd 80 set heading -90 fd 180]\nask turtle 6 [set heading 180 fd 80 set heading 90 fd 180]\nask turtle 7 [set size 100 set heading -90 fd 207]\nask turtle 8 [set size 80 set heading 180 fd 100 set heading 90 fd 45]\nask turtle 9 [set heading 180 fd 80]\nask turtle 10 [set size 230]
+1219
+209
+1360
+242
+setupbackground
+setup\ncro 6 [set shape \"back1\" set size 300 set heading 0]\nask turtle 1 [fd 80 set heading 90 fd 180]\nask turtle 2 [fd 80 set heading -90 fd 180]\nask turtle 3 [set heading 180 fd 80 set heading -90 fd 180]\nask turtle 4 [set heading 180 fd 80 set heading 90 fd 180]\nask turtle 5 [set heading 180 fd 80]\nask turtle 6 [fd 80]\n\n
 NIL
 1
 T
@@ -1841,11 +1841,6 @@ true
 0
 Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
-a
-false
-0
-Polygon -13345367 true false 120 60 135 15 150 15 165 60 150 60 150 45 135 45 135 60 120 60 120 60 120 60
-
 airplane
 true
 0
@@ -1860,6 +1855,22 @@ back1
 true
 4
 Rectangle -1184463 true true 45 45 255 255
+
+back11
+true
+4
+Rectangle -1184463 true true 45 45 255 255
+Polygon -2674135 true false 165 75 90 165 195 195 240 135 165 75 165 75
+
+back2
+true
+0
+Rectangle -7500403 true true 105 120 195 180
+
+back3
+true
+0
+Rectangle -2674135 true false 45 75 255 225
 
 basic-sword
 true
@@ -2299,6 +2310,40 @@ line half
 true
 0
 Line -7500403 true 150 0 150 150
+
+meele
+false
+0
+Rectangle -7500403 true true 120 30 135 45
+Rectangle -7500403 true true 105 45 120 60
+Polygon -1 true false 165 30 135 30 135 45 120 45 120 60 105 60 105 105 135 105 135 120 150 120 150 135 180 135 180 120 195 120 195 60 180 60 180 45 165 45 165 30
+Rectangle -7500403 true true 135 120 150 135
+Rectangle -7500403 true true 150 135 165 150
+Rectangle -7500403 true true 120 105 135 120
+Rectangle -7500403 true true 150 165 165 180
+Rectangle -7500403 true true 150 195 165 210
+Rectangle -1 true false 150 180 165 195
+Rectangle -1 true false 150 210 165 225
+Rectangle -1 true false 150 150 165 165
+Rectangle -7500403 true true 165 270 180 285
+Rectangle -7500403 true true 135 270 150 285
+Rectangle -7500403 true true 165 240 180 255
+Rectangle -7500403 true true 150 225 165 240
+Rectangle -7500403 true true 135 240 150 255
+Rectangle -7500403 true true 165 210 180 225
+Rectangle -7500403 true true 135 210 150 225
+Rectangle -1 true false 135 225 150 240
+Rectangle -1 true false 165 255 180 270
+Rectangle -1 true false 165 225 180 240
+Rectangle -1 true false 135 255 150 270
+Rectangle -16777216 true false 180 75 195 90
+Rectangle -16777216 true false 165 90 180 105
+Rectangle -16777216 true false 135 75 150 90
+Rectangle -7500403 true true 165 150 210 165
+Rectangle -1 true false 165 165 210 180
+Rectangle -6459832 true false 210 135 225 180
+Rectangle -7500403 true true 210 180 225 195
+Polygon -7500403 true true 210 135 210 60 225 75 225 135
 
 n
 false
