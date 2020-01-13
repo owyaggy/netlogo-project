@@ -1,0 +1,9 @@
+Level 0-3
+
+Exits: Bottom Right
+
+Melee: 1
+Magic: 1
+
+Bottom: 0-2
+Right: 0-4
