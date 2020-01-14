@@ -39,7 +39,7 @@ globals
   ;; User info
 
   inventory
-  health
+  hp
 
   ;; User movement:
 
@@ -95,6 +95,10 @@ globals
   fire-length
   sword-down
   can-attack ;; if sword can be used
+  attack-timer
+  max-attack
+  sword-damage ;; damage per sword attack
+  player-upgrade
 
   ;; Testing:
 
@@ -102,6 +106,15 @@ globals
   save
   document
   one-time
+
+  ;; Mobs
+
+  mob-speed
+
+  ar1
+  damage1
+  time
+
 ]
 
 breed[projectiles projectile]
@@ -111,10 +124,182 @@ projectiles-own[
   ;; Need more
 ]
 
+breed[players player]
+
+breed[mprojectiles mprojectile]
+mprojectiles-own[dist mar damage2]
+
+breed[mobs mob]
+mobs-own[
+  damage
+  as
+  sas
+  mspeed
+  relaxed?
+  ar
+  x
+  y
+  class
+]
+
+breed[meleemobs meleemob]
+meleemobs-own[meleemobs-speed]
+breed[rangemobs rangemob]
+rangemobs-own[rangemobs-speed]
+breed[magicmobs magicmob]
+magicmobs-own[magicmobs-speed]
+breed[bossmobs bossmob]
+bossmobs-own[bossmobs-speed]
+breed[finalmobs finalmob]
+finalmobs-own[finalmobs-speed]
+
 turtles-own [
   target-health
   on-fire
 ]
+
+;;------MOBS-CODE-RAYAT--------
+;;to wander
+;;  ask mobs [set color orange]
+;;  ask mprojectiles [set color orange]
+;;  if hp <= 0 [
+;;    ask players [setxy random-xcor random-ycor set color brown set hp 100]
+;;  ]
+;;  chase
+;;  mattack
+;;  rchase
+;;  poison
+
+;;  ask mobs [
+;;    if [pxcor] of patch-here = min-pxcor + side-width or [pxcor] of patch-here = max-pxcor - side-width or [pycor] of patch-here = min-pycor + side-width or [pycor] of patch-here = max-pycor - side-width [
+;;      ifelse random 2 = 0 [
+;;        rt 150
+;;      ]
+;;      [
+;;        lt 150
+;;      ]
+;;    ]
+;;  ]
+;;end
+
+;;to mattack
+;;  ask mobs [if class = "meele"  [ifelse count players in-radius ar > 0 and as <= 0 [set hp hp - damage set as sas ask player 0[fd 10]] [set as as - 1]]]
+;;  ask mobs [
+;;    set ar1 ar
+;;    set damage1 damage
+;;    if class = "ranged" [
+;;      ifelse count players in-radius ar > 0 and as <= 0 [
+;;        ask patch xcor ycor [sprout-mprojectiles 1 [face player 0 set mar ar1 set size 15 set damage2 damage1]] set as sas
+;;      ]
+;;      [
+;;        set as as - 1
+;;      ]
+;;    ]
+;;  ]
+;;  ask mobs [
+;;    if class = "magic" [
+;;      ifelse count players in-radius ar > 0 and as <= 0 [
+;;        set damage1 damage set as sas ask patches in-cone 4 40
+;;    [set poisoned? true set pdamage damage1]
+;;      ]
+;;      [
+;;        set as as - 1
+;;      ]
+;;    ]
+;;  ]
+;;end
+
+to chase
+  ask mobs [
+    if count players in-radius 80 > 0 [
+      set relaxed? false
+    ]
+  ]
+  ask mobs [
+    ifelse count players in-radius 75 > 0 [
+      face player 0 fd mspeed
+    ]
+    [
+      ifelse relaxed? = true [relax] [rt random 60 lt random 60 fd mspeed]
+    ]
+  ]
+end
+
+
+to relax
+  ask mobs [
+    rt random 60
+    lt random 60
+    fd mspeed
+  ]
+end
+
+to rchase
+  ask mprojectiles [fd 5.5 set dist dist + 1]
+  ask mprojectiles [if dist > mar [die]]
+  ask mprojectiles [if count players in-radius size > 0 [set hp hp - damage2]]
+end
+
+;;to setpoison
+;;  ask patches [
+;;    if poisoned? = true and dtime <= 50 [set pcolor red]
+;;    if poisoned? = true and dtime > 50 [set pcolor ocolor set poisoned? false set dtime 0 set pdamage 0]
+;;    if poisoned? = true [set dtime dtime + 1]
+;;  ]
+;;end
+
+;;to poison
+;;  ask player 0[ask patch-here [if poisoned? = true [set hp hp - pdamage]]]
+;;end
+
+;;------END-MOBS-CODE-RAYAT-------
+
+to set-variables
+  set mob-speed 0.0075
+  set player-upgrade 1
+  set sword-damage 20
+  set fire-length 25000 ;; length of an enemy being on fire
+  set can-attack true ;; if sword can be used
+  set attack-timer 0 ;; timer between sword attacks
+  set max-attack 1000 ;; time between sword attacks
+  set sword-down false ;; if sword is in attack position
+  ask turtles [set on-fire 0]
+  set one-time 0
+  set old-player-type 10
+  set w-pressed false
+  set watching false
+  set test 0
+  set document []
+  set save "None"
+  set r-exit "None"
+  set l-exit "None"
+  set t-exit "None"
+  set b-exit "None"
+  set inventory []
+  set hp 100 ;; NEED TO CHANGE THIS
+  set player-type 0 ;; default (no character) 1 = knight, 2 = archer, 3 = wizard
+  set side-width 15
+  set exit-width 90
+  set speed 5
+  carefully [
+    set level Start-Level
+  ] [set level 0]
+  set room -1
+  set level-number 0
+  set exits []
+  set exits lput item 0 lexits exits
+  set nmx mouse-xcor
+  set nmy mouse-ycor
+  set strafe-realign false ;; every time the character strafes, they DO NOT face toward the mouse
+  set ptype 1 ;; default projectile type
+  set ptimer 0
+  set ptimer-max 5000 ;; modify this number to change the time (in ticks) before a projectile can be fired again
+  set projectile-can-fire true
+  set line ""
+  set mouse-based true ;; true: w goes toward mouse, false: w goes up
+  set locks []
+  set exit-on "None"
+end
 
 to load-levels
   set lexits []
@@ -591,6 +776,7 @@ to read-file
 end
 
 to setup
+  ;;reset-ticks
   ca
   clear
   load-levels
@@ -599,50 +785,8 @@ to setup
   setup-level
   create-exits
   setup-character ;; creates the character
-end
-
-to set-variables
-  set fire-length 25000 ;; length of an enemy being o
-  set can-attack true ;; if sword can be used
-  set attack-timer 0 ;; timer between sword attacks
-  set max-attack 1000 ;; time between sword attacks
-  set sword-down false ;; if sword is in attack position
-  ask turtles [set on-fire 0]
-  set one-time 0
-  set old-player-type 10
-  set w-pressed false
-  set watching false
-  set test 0
-  set document []
-  set save "None"
-  set r-exit "None"
-  set l-exit "None"
-  set t-exit "None"
-  set b-exit "None"
-  set inventory []
-  set health 100 ;; NEED TO CHANGE THIS
-  set player-type 0 ;; default (no character) 1 = knight, 2 = archer, 3 = wizard
-  set side-width 15
-  set exit-width 90
-  set speed 5
-  carefully [
-    set level Start-Level
-  ] [set level 0]
-  set room -1
-  set level-number 0
-  set exits []
-  set exits lput item 0 lexits exits
-  set nmx mouse-xcor
-  set nmy mouse-ycor
-  set strafe-realign false ;; every time the character strafes, they DO NOT face toward the mouse
-  set ptype 1 ;; default projectile type
-  set ptimer 0
-  set ptimer-max 5000 ;; modify this number to change the time (in ticks) before a projectile can be fired again
-  set projectile-can-fire true
-  set line ""
-  set mouse-based true ;; true: w goes toward mouse, false: w goes up
-  set locks []
-  set exit-on "None"
+  show-health
+  reset-ticks
 end
 
 to adjust-world
@@ -691,7 +835,8 @@ to setup-character
 end
 
 to go
-  ;;every .1 [
+  let old-health hp
+  ifelse can-attack = true [set sword-down false] [set sword-down true]
   if room = -1 [
     tutorial
   ]
@@ -701,19 +846,21 @@ to go
   ifelse player-type = 1 [
     set ptimer-max 1000
   ] [set ptimer-max 5000]
-  show-health
-  knight-weapon
+  ask turtle 0 [if player-type = 1 and can-attack = true [set shape "knight4"]]
+  go-mobs
+  update-wizard
   burning
   firing
-  ;; if mouse-down? [shoot] ;; this is too laggy
+  if attack-timer = 0 [set can-attack true]
+  if attack-timer != 0 [set can-attack false]
+  if can-attack = false [set attack-timer (attack-timer + 1) if attack-timer >= max-attack [set attack-timer 0 set can-attack true]]
   if count projectiles > 75 [ask projectiles [die] show "Too many projectiles were fired."]
   if ptimer = 0 [set projectile-can-fire true]
   if ptimer != 0 [set projectile-can-fire false]
   if projectile-can-fire = false [set ptimer (ptimer + 1) if ptimer >= ptimer-max [set ptimer 0 set projectile-can-fire true]]
-  ifelse watch-character = true [watch turtle 0] [if watching = false [reset-perspective]]
   sense-exits
-  ifelse use-mouse-to-point? = true [set mouse-based true] [set mouse-based false]
-  ;;]
+  if hp != old-health [show-health]
+  tick
 end
 
 to directional
@@ -733,43 +880,33 @@ to w ;; if w pressed / "forward"
   if one-time = 3 [set one-time 4]
 end
 
-to a ;; if a pressed / "left"
-  if player-type != 0 [
-    ask turtle 0 [
-      let oldh heading ;; creates a variable to store the turtle's previous heading
-      set heading heading - 90
-      fd speed
-      check
-      set heading oldh
-      if strafe-realign = true [point]
-    ]
-  ]
-end
-
-to d ;; if d pressed / "right"
-  if player-type != 0 [
-    ask turtle 0 [
-      let oldh heading ;; creates a variable to store the turtle's previous heading
-      set heading heading + 90
-      fd speed
-      check
-      set heading oldh
-      if strafe-realign = true [point]
-    ]
-  ]
-end
-
-to s ;; if s pressed / "backwards"
-  if player-type != 0 [ask turtle 0 [fd (-1 * speed) check]]
-end
-
 to check ;; checks if there is a barrier
   ;; currently this only works for the exact center of the character
-  if pcolor = blue or pcolor = orange [fd (speed * -1)]
-  carefully [if [pcolor] of patch-ahead 15 = blue or [pcolor] of patch-ahead 15 = orange [fd (speed * -1)]]
-  [if pcolor = blue or pcolor = orange [fd (speed * -1)]]
-  carefully [if [pcolor] of patch-ahead -15 = blue or [pcolor] of patch-ahead -15 = orange [fd (speed * 1)]]
-  [if pcolor = blue or pcolor = orange [fd (speed * 1)]]
+  if player-type = 0 [;; default checking
+    if pcolor = blue or pcolor = orange [fd (speed * -1)]
+    carefully [if [pcolor] of patch-ahead 15 = blue or [pcolor] of patch-ahead 15 = orange [fd (speed * -1)]]
+    [if pcolor = blue or pcolor = orange [fd (speed * -1)]]
+    carefully [if [pcolor] of patch-ahead -15 = blue or [pcolor] of patch-ahead -15 = orange [fd (speed * 1)]]
+    [if pcolor = blue or pcolor = orange [fd (speed * 1)]]
+  ]
+  if player-type = 1 [;; knight checking
+    if (ycor > 158.75 and (not member? "top" exits)) or ((xcor < exit-width / -2 or xcor > exit-width / 2) and (not member? "locked" t-exit) and (member? "top" exits) and ycor > 158.75) [set ycor 158.75]
+    if (ycor < -158.75 and (not member? "bottom" exits)) or ((xcor < exit-width / -2 or xcor > exit-width / 2) and (not member? "locked" b-exit) and (member? "bottom" exits) and ycor < -158.75) [set ycor -158.75]
+    if (xcor > 261.2297313227724 and (not member? "right" exits)) or ((ycor < exit-width / -2 or ycor > exit-width / 2) and (not member? "locked" r-exit) and (member? "right" exits) and xcor > 261.2297313227724) [set xcor 261.2297313227724]
+    if (xcor < -273.2266777251864 and (not member? "left" exits)) or ((ycor < exit-width / -2 or ycor > exit-width / 2) and (not member? "locked" l-exit) and (member? "left" exits) and xcor < -273.2266777251864) [set xcor -273.2266777251864]
+  ]
+  if player-type = 2 [;; archer checking
+    if (ycor > 160.79054579119733 and (not member? "top" exits)) or ((xcor < exit-width / -2 or xcor > exit-width / 2) and (not member? "locked" t-exit) and (member? "top" exits) and ycor > 160.79054579119733) [set ycor 160.79054579119733]
+    if (ycor < -157.42697475566905 and (not member? "bottom" exits)) or ((xcor < exit-width / -2 or xcor > exit-width / 2) and (not member? "locked" b-exit) and (member? "bottom" exits) and ycor < -157.42697475566905) [set ycor -157.42697475566905]
+    if (xcor > 267.2903791277831 and (not member? "right" exits)) or ((ycor < exit-width / -2 or ycor > exit-width / 2) and (not member? "locked" r-exit) and (member? "right" exits) and xcor > 267.2903791277831) [set xcor 267.2903791277831]
+    if (xcor < -273.3441020673409 and (not member? "left" exits)) or ((ycor < exit-width / -2 or ycor > exit-width / 2) and (not member? "locked" l-exit) and (member? "left" exits) and xcor < -273.3441020673409) [set xcor -273.3441020673409]
+  ]
+  if player-type = 3 [;; wizard checking
+    if (ycor > 162.77482995111876 and (not member? "top" exits)) or ((xcor < exit-width / -2 or xcor > exit-width / 2) and (not member? "locked" t-exit) and (member? "top" exits) and ycor > 162.77482995111876) [set ycor 162.77482995111876]
+    if (ycor < -163.60190258135418 and (not member? "bottom" exits)) or ((xcor < exit-width / -2 or xcor > exit-width / 2) and (not member? "locked" b-exit) and (member? "bottom" exits) and ycor < -163.60190258135418) [set ycor -163.60190258135418]
+    if (xcor > 263.75343091507403 and (not member? "right" exits)) or ((ycor < exit-width / -2 or ycor > exit-width / 2) and (not member? "locked" r-exit) and (member? "right" exits) and xcor > 263.75343091507403) [set xcor 263.75343091507403]
+    if (xcor < -263.75343091507403 and (not member? "left" exits)) or ((ycor < exit-width / -2 or ycor > exit-width / 2) and (not member? "locked" l-exit) and (member? "left" exits) and xcor < -263.75343091507403) [set xcor -263.75343091507403]
+  ]
 end
 
 to sense-exits
@@ -817,6 +954,7 @@ to sense-exits
 end
 
 to show-health
+  output-print hp
 end
 
 to attack
@@ -837,8 +975,37 @@ to knight-weapon
 end
 
 to hit
-  ask turtles with [player-type = 1] [
-    if can-attack = true [
+  ask turtle 0 [
+    if player-type = 1 [
+      if can-attack = true [
+        set can-attack false
+        set attack-timer 1
+        set shape "knight5"
+      ]
+      if can-attack = false [
+        let var-a [who] of turtles with [shape = "target"]
+        let var-b 0
+        carefully [
+          set var-b item 0 var-a
+        ] [
+          set var-b 0
+        ]
+        if count turtles with [shape = "target"] in-radius 25 >= 1 or (([xcor] of turtle var-b + 20) > ([xcor] of turtle 0 - 30) and count turtles with [shape = "target"] in-radius 48 >= 1 ) [
+          ask turtles with [shape = "target"] [set target-health target-health - sword-damage]
+        ]
+        set var-a [who] of meleemobs
+        carefully [
+          set var-b item 0 var-a
+          repeat (length var-a) [
+            if count meleemobs in-radius 30 >= 1 or (([xcor] of (item var-b var-a) + 20) > ([xcor] of turtle 0 - 30) and count meleemobs in-radius 50 >= 1) [
+              ask meleemobs [set target-health target-health - sword-damage]
+            ]
+            set var-b var-b + 1
+          ]
+        ] [
+          ;; ignore code if error occurs
+        ]
+      ]
     ]
   ]
 end
@@ -874,36 +1041,39 @@ to firing
     if ptype = 1 [ ;; ARCHER type 1
       if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die]
       if count turtles with [shape = "target"] in-radius 27.5 >= 1 [ask turtles with [shape = "target"] [set target-health target-health - 20] die]
+      if count meleemobs in-radius  >= 1 [ask meleemobs in-radius 30 [set target-health target-health - 20] die]
     ]
     if ptype = 2 [ ;; FIREBALL
       if pcolor = blue or xcor >= max-pxcor or ycor >= max-pycor or ycor <= min-pycor or xcor <= min-pxcor [die]
       if count turtles with [shape = "target"] in-radius 27.5 >= 1 [ask turtles with [shape = "target"] [set target-health target-health - 10 set on-fire fire-length] die]
+      if count meleemobs in-radius 30 >= 1 [ask meleemobs in-radius 30 [set target-health target-health - 10 set on-fire fire-length] die]
     ]
   ]
 end
 
 to advance-level
-  ask turtle 0 [
-    if exit-on = "Top" [
-      setxy 0 (min-pycor + 50)
+  if count meleemobs = 0 and count rangemobs = 0 and count magicmobs = 0 and count bossmobs = 0 and count finalmobs = 0 [
+    ask turtle 0 [
+      if exit-on = "Top" [
+        setxy 0 (min-pycor + 50)
+      ]
+      if exit-on = "Bottom" [
+        setxy 0 (max-pycor - 50)
+      ]
+      if exit-on = "Right" [
+        setxy (min-pxcor + 50) 0
+      ]
+      if exit-on = "Left" [
+        setxy (max-pxcor - 50) 0
+      ]
+      if exit-on = "None" [
+        setxy 0 0
+      ]
     ]
-    if exit-on = "Bottom" [
-      setxy 0 (max-pycor - 50)
-    ]
-    if exit-on = "Right" [
-      setxy (min-pxcor + 50) 0
-    ]
-    if exit-on = "Left" [
-      setxy (max-pxcor - 50) 0
-    ]
-    if exit-on = "None" [
-      setxy 0 0
-    ]
+    setup-level
+    create-barrier
+    create-exits
   ]
-  ;;set exits []
-  setup-level
-  create-barrier
-  create-exits
 end
 
 to setup-level
@@ -919,7 +1089,48 @@ to setup-level
     set exits ["top"]
     set t-exit "0-0"
   ]
+ if room != -1 [
+   carefully [
+      ask patch 0 0 [
+        sprout-meleemobs (item level-number lmelee) [type-melee]
+        ;;sprout-rangemobs (item level-number lrange) [set rangemobs-speed mob-speed default]
+        ;;sprout-magicmobs (item level-number lmagic) [set magicmobs-speed mob-speed default]
+        ;;sprout-bossmobs (item level-number lboss) [set bossmobs-speed mob-speed default]
+        ;;sprout-finalmobs (item level-number lfinal) [set finalmobs-speed mob-speed default]
+      ]
+    ] [
+      user-message "Spawn mobs error."
+    ]
+  ]
 end
+
+to type-melee
+  set meleemobs-speed mob-speed
+  set shape "Melee"
+  set size 60
+  set color white
+  set target-health 100
+end
+
+;;Owen mobs
+to go-mobs
+  if (count meleemobs >= 1) or (count rangemobs >= 1) or (count magicmobs >= 1) or (count bossmobs >= 1) or (count finalmobs >= 1) [
+    ask meleemobs [
+      face turtle 0
+      rt random 180
+      lt random 180
+      fd meleemobs-speed
+      if (ticks mod 12500) = 0 [
+        if (count turtles with [who = 0] in-radius 45) >= 1 [set hp hp - 5]
+      ]
+      if target-health <= 0 [
+        die
+      ]
+    ]
+    ;; Need all other mob types
+  ]
+end
+;;Owen mobs end
 
 to set-level-number
   if room = -1 [set level-number -1]
@@ -975,19 +1186,21 @@ end
 to tutorial
   set test test + 1
   if one-time = 0 [clear set arx 220 set ard 1 show "Select a character on the right!" set one-time 1 crt 1 [set shape "arrow" set heading 90 set color blue set size 85 setxy arx 140]]
-  ask turtle 0 [
-    if old-player-type = 10 [
-      if player-type = 1 [ifelse sword-down = true [set shape "knight4"] [set shape "knight5"] set size 60 set color 4 set hidden? false]
-      if player-type = 2 [set shape "person soldier" set hidden? false]
-      if player-type = 3 [set shape "person graduate" set hidden? false]
-    ]
-    if old-player-type != 10 [
-      if player-type != old-player-type and one-time >= 9 and one-time < 100 [
+  if one-time = 1 or one-time = 9 or one-time = 10 [
+    ask turtle 0 [
+      if old-player-type = 10 [
         if player-type = 1 [ifelse sword-down = true [set shape "knight4"] [set shape "knight5"] set size 60 set color 4 set hidden? false]
-        if player-type = 2 [set shape "person soldier" set hidden? false]
-        if player-type = 3 [set shape "person graduate" set hidden? false]
-        set one-time 7
-        set old-player-type player-type
+        if player-type = 2 [set ptype 1 set shape "archer" set size 60 set color white set hidden? false]
+        if player-type = 3 [set ptype 2 set shape "wizard3" set color violet set hidden? false]
+      ]
+      if old-player-type != 10 [
+        if player-type != old-player-type and one-time >= 9 and one-time < 100 [
+          if player-type = 1 [ifelse sword-down = true [set shape "knight4"] [set shape "knight5"] set size 60 set color 4 set hidden? false]
+          if player-type = 2 [set ptype 1 set shape "archer" set size 60 set color white set hidden? false]
+          if player-type = 3 [set ptype 2 set shape "wizard3" set color violet set hidden? false]
+          set one-time 8
+          set old-player-type player-type
+        ]
       ]
     ]
   ]
@@ -1029,7 +1242,7 @@ to tutorial
   ]
   if one-time = 5 [
     set arx arx + 1
-    if arx > 75000 [set one-time 6 set arx 0]
+    if arx > 25000 [set one-time 6 set arx 0]
   ]
   if one-time = 6 [
     clear
@@ -1043,9 +1256,9 @@ to tutorial
     set one-time 8
   ]
   if one-time = 8 [
-    ;; Need to create visual for melee combat
     if player-type = 1 [
       ;; Instructions for how to use melee combat
+      show "Press E to attack with your sword"
       set one-time 110 ;; one-time specific for knight
     ]
     if player-type = 2 [
@@ -1061,6 +1274,33 @@ to tutorial
     ]
   ]
   if one-time = 110 [ ;; one-time specific for knight
+    cro 1 [set shape "target" set size 40 setxy 0 0 set target-health 100]
+    show "Destory this target!"
+    set ars 0.005
+    set ard 280
+    set one-time 111
+  ]
+  if one-time = 111 [
+    ask turtles with [shape = "target"] [
+      set heading ard
+      fd ars
+      if xcor - 20 < min-pxcor + side-width [
+        set ard 360 - ard
+      ]
+      if xcor + 20 > max-pxcor - side-width [
+        set ard 360 - ard
+      ]
+      if ycor + 20 > max-pycor - side-width [
+        set ard 180 - ard
+      ]
+      if ycor - 20 < min-pycor + side-width [
+        set ard 180 - ard
+      ]
+      if target-health <= 0 [
+        set one-time 9
+        die
+      ]
+    ]
   ]
   if one-time = 120 [ ;; one-time specific for archer
     ;; Create target that needs to be destroyed by being hit 5 times
@@ -1069,7 +1309,6 @@ to tutorial
     set ars 0.01
     set ard 280
     set one-time 121
-    set ptype 1
   ]
   if one-time = 121 [
     ask turtles with [shape = "target"] [
@@ -1099,7 +1338,6 @@ to tutorial
     set ars 0.01
     set ard 280
     set one-time 131
-    set ptype 2
   ]
   if one-time = 131 [
     ask turtles with [shape = "target" or shape = "target-fire1" or shape = "target-fire2"] [
@@ -1137,6 +1375,7 @@ end
 to skip-tutorial
   ifelse player-type != 0 [
     set one-time 9
+    ask turtles with [member? "target" shape] [die]
     reset-perspective
     set watching false
   ] [
@@ -1147,6 +1386,7 @@ end
 
 to burning
   ask turtles with [on-fire > 0] [
+    ;; Targets
     if shape = "target-fire1" or shape = "target-fire2" [
       set target-health target-health - (15 / fire-length)
     ]
@@ -1157,11 +1397,38 @@ to burning
     if shape = "target-fire2" [
       if random 1000 = 0 [set shape "target-fire1"]
     ]
+    ;; Melee mobs
+    if shape = "melee-fire1" or shape = "melee-fire2" [
+      set target-health target-health - (15 / fire-length)
+    ]
+    if shape = "melee" [set shape "melee-fire1"]
+    if shape = "melee-fire1" [
+      if random 1000 = 0 [set shape "melee-fire2"]
+    ]
+    if shape = "melee-fire2" [
+      if random 1000 = 0 [set shape "melee-fire1"]
+    ]
+
     set on-fire on-fire - 1
     if on-fire <= 0 [
       set on-fire 0
+      ;; Targets
       if shape = "target-fire1" or shape = "target-fire2" [
         set shape "target"
+      ]
+      ;; melee mobs
+      if shape = "melee-fire1" or shape = "melee-fire2" [
+        set shape "melee"
+      ]
+    ]
+  ]
+end
+
+to update-wizard
+  if player-type = 3 [
+    ask turtle 0 [
+      if random 500 = 0 [
+        ifelse shape = "wizard3" [set shape "wizard4"] [set shape "wizard3"]
       ]
     ]
   ]
@@ -1233,57 +1500,6 @@ NIL
 1
 
 BUTTON
-405
-507
-474
-540
-Right
-d
-NIL
-1
-T
-OBSERVER
-NIL
-D
-NIL
-NIL
-0
-
-BUTTON
-344
-507
-407
-540
-Left
-a
-NIL
-1
-T
-OBSERVER
-NIL
-A
-NIL
-NIL
-0
-
-BUTTON
-368
-539
-439
-572
-Down
-s
-NIL
-1
-T
-OBSERVER
-NIL
-S
-NIL
-NIL
-0
-
-BUTTON
 91
 20
 199
@@ -1339,34 +1555,12 @@ NIL
 NIL
 1
 
-SWITCH
-473
-505
-631
-538
-watch-character
-watch-character
-1
-1
--1000
-
-SWITCH
-438
-538
-630
-571
-use-mouse-to-point?
-use-mouse-to-point?
-0
-1
--1000
-
 TEXTBOX
-213
+263
 10
-822
-53
-TITLE OF OUR DUNGEON GAME
+812
+58
+DUNGEON GAME
 40
 0.0
 1
@@ -1387,10 +1581,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-819
-75
-948
-108
+818
+76
+947
+109
 Knight
 set-character-knight
 NIL
@@ -1404,10 +1598,10 @@ NIL
 1
 
 BUTTON
-819
-106
-948
-139
+818
+107
+947
+140
 Archer
 set-character-archer
 NIL
@@ -1438,16 +1632,6 @@ NIL
 1
 
 TEXTBOX
-443
-488
-593
-506
-Are these needed?
-11
-0.0
-1
-
-TEXTBOX
 842
 58
 992
@@ -1456,28 +1640,6 @@ Pick a character:
 11
 0.0
 1
-
-MONITOR
-838
-297
-928
-342
-NIL
-mouse-xcor
-17
-1
-11
-
-MONITOR
-840
-355
-929
-400
-NIL
-mouse-ycor
-17
-1
-11
 
 TEXTBOX
 36
@@ -1489,17 +1651,6 @@ Press setup, then go to start.\nThe Command Center has\ninstructions!
 0.0
 1
 
-MONITOR
-978
-238
-1147
-283
-NIL
-[target-health] of turtle 2
-17
-1
-11
-
 BUTTON
 819
 196
@@ -1507,45 +1658,6 @@ BUTTON
 229
 Skip Tutorial
 skip-tutorial
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-MONITOR
-743
-510
-983
-555
-NIL
-count turtles with [shape = \"fireball\"]
-17
-1
-11
-
-MONITOR
-844
-429
-1424
-474
-NIL
-[on-fire] of turtles with [shape = \"target\" or shape = \"target-fire1\" or shape = \"target-fire2\"]
-17
-1
-11
-
-BUTTON
-958
-308
-1186
-341
-Reset Target Health (for testing)
-ask turtles with [shape = \"target\"] [set target-health 1000]
 NIL
 1
 T
@@ -1590,7 +1702,7 @@ TEXTBOX
 950
 78
 1269
-103
+111
 Uses a sword to defeat enemies. Causes a fair amount of damage.
 11
 0.0
@@ -1601,49 +1713,48 @@ TEXTBOX
 53
 1281
 75
-All characters cause the same amount of damage per attack.\n------------------------------------------------------
+Each character differs in appearance and combat type.\n------------------------------------------------------
 11
 0.0
 1
 
+OUTPUT
+818
+253
+925
+320
+40
+
+TEXTBOX
+823
+236
+973
+255
+Health:
+15
+0.0
+1
+
+TEXTBOX
+212
+473
+830
+541
+-Once you enter a room, you CANNOT leave until you've killed all of the mobs in the room!\n-Orange exits mean that the exit is locked. You can find keys in certain rooms, or by killing mobs.
+14
+0.0
+1
+
 MONITOR
-24
-317
-151
-362
+973
+235
+1259
+280
 NIL
-projectile-can-fire
+[target-health] of meleemobs with [who = 0]
 17
 1
 11
-
-MONITOR
-23
-379
-80
-424
-NIL
-ptimer
-17
-1
-11
-
-BUTTON
-97
-389
-168
-422
-switch
-ask turtles [\n ifelse shape = \"knight4\" [set shape \"knight5\"]\n [if shape = \"knight5\" [set shape \"knight4\"]]\n]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1696,6 +1807,34 @@ airplane
 true
 0
 Polygon -7500403 true true 150 0 135 15 120 60 120 105 15 165 15 195 120 180 135 240 105 270 120 285 150 270 180 285 210 270 165 240 180 180 285 195 285 165 180 105 180 60 165 15
+
+archer
+false
+11
+Polygon -10899396 true false 186 246 173 171 139 171 139 187 158 196 171 247
+Polygon -6459832 true false 177 280 180 296 213 296 210 283 193 281 189 259 193 258 191 246 165 246 166 259 173 262
+Polygon -10899396 true false 114 246 127 171 161 171 161 187 142 196 129 247
+Polygon -6459832 true false 123 280 120 296 87 296 90 283 107 281 111 259 107 258 109 246 135 246 134 259 127 262
+Polygon -10899396 true false 126 173 118 101 122 112 121 120 125 133 123 132 123 125 123 120 120 120 122 105 118 100 117 91 115 78 120 77 146 70 151 169
+Polygon -8630108 true true 126 180 126 167 174 165 174 183
+Polygon -13840069 true false 135 74 148 119 167 75 162 70 150 68 140 69
+Polygon -10899396 true false 143 166 174 170 184 114 185 101 187 94 188 86 175 79 165 75 163 80 141 122
+Polygon -10899396 true false 187 86 246 106 239 125 183 106 183 106
+Polygon -10899396 true false 114 80 124 137 132 134 125 79
+Polygon -8630108 true true 218 97 213 116 239 126 249 106
+Polygon -6459832 true false 189 41 205 45 212 53 217 58 222 68 228 79 230 88 233 104 233 116 233 130 232 141 230 150 226 158 222 165 215 174 209 178 203 181 198 185 194 188 195 192 196 194 202 193 207 190 217 184 224 178 227 175 233 167 234 161 237 155 239 146 239 142 240 137 242 128 242 123 244 114 244 109 244 104 244 100 244 94 243 89 240 85 239 79 238 73 235 65 231 60 228 54 225 48 220 45 216 42 211 38 204 35 198 34 188 33 185 34 185 37 187 42
+Line -6459832 false 193 39 199 189
+Circle -16777216 true false 129 30 44
+Polygon -10899396 true false 139 73 162 36 165 32 156 29 152 29 146 29 142 29 136 30 130 34 123 44 123 56 129 64 131 66 137 73
+Polygon -13840069 true false 146 33 149 27 156 27 167 27 172 34 167 37 160 37 153 36
+Polygon -8630108 true true 117 97 195 109 196 127 132 118
+Polygon -8630108 true true 118 97 132 117 99 103 112 97
+Polygon -10899396 true false 118 76 106 83 102 87 102 93 102 105 121 98
+Polygon -13840069 true false 172 62 168 63 163 63 156 63 150 61 145 61 135 61 132 62 128 64 131 70 137 73 143 74 152 76 158 76 164 74 168 73 169 71 171 68
+Polygon -13840069 true false 162 65 157 62 157 55 159 51 161 47 161 45 156 44 152 45 148 53 146 61 151 64 156 64
+Polygon -13840069 true false 156 35 164 38 164 41 160 46 156 47
+Polygon -13840069 true false 155 33 146 33 144 36 140 40 140 48 140 56 141 60 145 65 149 65 154 60 156 54 158 51 161 48 161 46 164 43 166 39 170 36 170 32 165 32
+Circle -1184463 true false 141 166 15
 
 arrow
 true
@@ -2141,6 +2280,114 @@ true
 0
 Line -7500403 true 150 0 150 150
 
+melee
+false
+7
+Rectangle -7500403 true false 120 30 135 45
+Rectangle -7500403 true false 105 45 120 60
+Polygon -1 true false 165 30 135 30 135 45 120 45 120 60 105 60 105 105 135 105 135 120 150 120 150 135 180 135 180 120 195 120 195 60 180 60 180 45 165 45 165 30
+Rectangle -7500403 true false 135 120 150 135
+Rectangle -7500403 true false 150 135 165 150
+Rectangle -7500403 true false 120 105 135 120
+Rectangle -7500403 true false 150 165 165 180
+Rectangle -7500403 true false 150 195 165 210
+Rectangle -1 true false 150 180 165 195
+Rectangle -1 true false 150 210 165 225
+Rectangle -1 true false 150 150 165 165
+Rectangle -7500403 true false 165 270 180 285
+Rectangle -7500403 true false 135 270 150 285
+Rectangle -7500403 true false 165 240 180 255
+Rectangle -7500403 true false 150 225 165 240
+Rectangle -7500403 true false 135 240 150 255
+Rectangle -7500403 true false 165 210 180 225
+Rectangle -7500403 true false 135 210 150 225
+Rectangle -1 true false 135 225 150 240
+Rectangle -1 true false 165 255 180 270
+Rectangle -1 true false 165 225 180 240
+Rectangle -1 true false 135 255 150 270
+Rectangle -16777216 true false 180 75 195 90
+Rectangle -16777216 true false 165 90 180 105
+Rectangle -16777216 true false 135 75 150 90
+Rectangle -7500403 true false 165 150 210 165
+Rectangle -1 true false 165 165 210 180
+Rectangle -6459832 true false 210 135 225 180
+Rectangle -7500403 true false 210 180 225 195
+Polygon -7500403 true false 210 135 210 60 225 75 225 135
+
+melee-fire1
+false
+7
+Rectangle -7500403 true false 120 30 135 45
+Rectangle -7500403 true false 105 45 120 60
+Polygon -1 true false 165 30 135 30 135 45 120 45 120 60 105 60 105 105 135 105 135 120 150 120 150 135 180 135 180 120 195 120 195 60 180 60 180 45 165 45 165 30
+Rectangle -7500403 true false 135 120 150 135
+Rectangle -7500403 true false 150 135 165 150
+Rectangle -7500403 true false 120 105 135 120
+Rectangle -7500403 true false 150 165 165 180
+Rectangle -7500403 true false 150 195 165 210
+Rectangle -1 true false 150 180 165 195
+Rectangle -1 true false 150 210 165 225
+Rectangle -1 true false 150 150 165 165
+Rectangle -7500403 true false 165 270 180 285
+Rectangle -7500403 true false 135 270 150 285
+Rectangle -7500403 true false 165 240 180 255
+Rectangle -7500403 true false 150 225 165 240
+Rectangle -7500403 true false 135 240 150 255
+Rectangle -7500403 true false 165 210 180 225
+Rectangle -7500403 true false 135 210 150 225
+Rectangle -1 true false 135 225 150 240
+Rectangle -1 true false 165 255 180 270
+Rectangle -1 true false 165 225 180 240
+Rectangle -1 true false 135 255 150 270
+Rectangle -16777216 true false 180 75 195 90
+Rectangle -16777216 true false 165 90 180 105
+Rectangle -16777216 true false 135 75 150 90
+Rectangle -7500403 true false 165 150 210 165
+Rectangle -1 true false 165 165 210 180
+Rectangle -6459832 true false 210 135 225 180
+Rectangle -7500403 true false 210 180 225 195
+Polygon -7500403 true false 210 135 210 60 225 75 225 135
+Polygon -2674135 true false 161 211 131 200 118 179 111 148 122 156 114 124 115 109 127 121 128 97 132 81 143 95 147 108 148 120 155 107 162 100 167 87 176 100 178 111 178 127 177 141 176 147 184 137 194 123 205 130 205 144 204 160 200 174 183 194 171 206
+Polygon -955883 true false 161 210 142 195 129 177 128 169 140 175 139 161 133 149 133 130 137 120 147 143 155 138 164 124 162 149 164 165 168 169 181 163 192 148 182 165 174 184 168 197
+Polygon -1184463 true false 162 208 153 199 145 190 146 180 154 188 154 175 155 169 162 182 170 181
+
+melee-fire2
+false
+7
+Rectangle -7500403 true false 120 30 135 45
+Rectangle -7500403 true false 105 45 120 60
+Polygon -1 true false 165 30 135 30 135 45 120 45 120 60 105 60 105 105 135 105 135 120 150 120 150 135 180 135 180 120 195 120 195 60 180 60 180 45 165 45 165 30
+Rectangle -7500403 true false 135 120 150 135
+Rectangle -7500403 true false 150 135 165 150
+Rectangle -7500403 true false 120 105 135 120
+Rectangle -7500403 true false 150 165 165 180
+Rectangle -7500403 true false 150 195 165 210
+Rectangle -1 true false 150 180 165 195
+Rectangle -1 true false 150 210 165 225
+Rectangle -1 true false 150 150 165 165
+Rectangle -7500403 true false 165 270 180 285
+Rectangle -7500403 true false 135 270 150 285
+Rectangle -7500403 true false 165 240 180 255
+Rectangle -7500403 true false 150 225 165 240
+Rectangle -7500403 true false 135 240 150 255
+Rectangle -7500403 true false 165 210 180 225
+Rectangle -7500403 true false 135 210 150 225
+Rectangle -1 true false 135 225 150 240
+Rectangle -1 true false 165 255 180 270
+Rectangle -1 true false 165 225 180 240
+Rectangle -1 true false 135 255 150 270
+Rectangle -16777216 true false 180 75 195 90
+Rectangle -16777216 true false 165 90 180 105
+Rectangle -16777216 true false 135 75 150 90
+Rectangle -7500403 true false 165 150 210 165
+Rectangle -1 true false 165 165 210 180
+Rectangle -6459832 true false 210 135 225 180
+Rectangle -7500403 true false 210 180 225 195
+Polygon -7500403 true false 210 135 210 60 225 75 225 135
+Polygon -2674135 true false 165 210 135 195 121 184 112 160 127 167 117 144 120 124 129 134 132 114 143 96 145 118 157 85 167 128 179 118 194 113 192 133 189 145 209 141 206 165 205 187 195 199 178 206
+Polygon -955883 true false 167 210 141 190 136 170 148 179 148 166 141 154 143 131 154 148 161 141 162 156 167 165 175 154 182 165 182 183 171 198
+Polygon -1184463 true false 167 206 157 194 157 186 163 190 161 173 169 175 173 186
+
 n
 false
 0
@@ -2361,6 +2608,116 @@ Line -7500403 true 216 40 79 269
 Line -7500403 true 40 84 269 221
 Line -7500403 true 40 216 269 79
 Line -7500403 true 84 40 221 269
+
+wizard1
+false
+11
+Polygon -8630108 true true 88 124 82 135 78 154 76 178 75 192 75 204 73 227 72 255 72 264 66 274 59 284 65 288 84 290 110 292 127 292 144 292 150 290 152 284 153 274 153 251 153 212 153 161 153 140 149 122
+Polygon -8630108 true true 212 124 218 135 222 154 224 178 225 192 225 204 227 227 228 255 228 264 234 274 241 284 235 288 216 290 190 292 173 292 156 292 150 290 148 284 147 274 147 251 147 212 147 161 147 140 151 122
+Polygon -5825686 true false 195 107 226 123 236 143 168 126 139 134 144 106 194 104
+Polygon -5825686 true false 105 107 74 123 64 143 132 126 161 134 156 106 106 104
+Circle -16777216 true false 118 37 64
+Polygon -8630108 true true 135 13 116 32 119 36 109 48 111 53 111 58 109 65 107 72 108 77 110 84 111 91 98 99 112 113 128 103 119 101 124 96 126 86 126 76 125 65 124 61 129 55 136 53 139 54 138 15
+Polygon -8630108 true true 164 12 183 31 180 35 190 47 188 52 188 57 190 64 192 71 191 76 189 83 188 90 201 98 187 112 171 102 180 100 175 95 173 85 173 75 174 64 175 60 170 54 163 52 160 53 161 14
+Polygon -8630108 true true 134 14 164 13 163 51 136 52
+Polygon -1 true false 150 92 151 95 158 95 163 95 167 95 173 93 173 99 173 105 168 112 164 117 159 119 155 121 149 121
+Polygon -1 true false 150 92 149 95 142 95 137 95 133 95 127 93 127 99 127 105 132 112 136 117 141 119 145 121 151 121
+Polygon -1 true false 144 96 144 94 145 92 148 91 151 90 153 91 155 92 155 95
+Polygon -1 true false 133 96 137 87 145 85 153 85 161 85 165 91 166 96 171 96 170 87 165 82 156 79 151 79 145 80 136 82 130 87 128 95
+Circle -8630108 true true 155 63 12
+Circle -8630108 true true 133 63 12
+Polygon -1 true false 154 68 161 61 161 63 166 59 166 62 172 63 166 64
+Polygon -1 true false 146 68 139 61 139 63 134 59 134 62 128 63 134 64
+Line -16777216 false 170 293 164 127
+Line -16777216 false 191 146 200 278
+Line -16777216 false 130 293 136 127
+Line -16777216 false 109 146 100 278
+
+wizard2
+false
+11
+Polygon -8630108 true true 171 117 164 101 132 99 88 270 85 274 77 275 67 279 58 280 58 284 62 288 73 290 83 290 98 290 111 290 124 290 141 289 153 287 160 117
+Polygon -13345367 true false 155 116 148 116 123 251 134 251
+Polygon -13345367 true false 144 109 116 216 90 217 120 84
+Circle -16777216 true false 118 37 64
+Polygon -8630108 true true 135 13 116 32 119 36 109 48 111 53 111 58 109 65 107 72 108 77 110 84 111 91 98 99 112 113 128 103 119 101 124 96 126 86 126 76 125 65 124 61 129 55 136 53 139 54 138 15
+Polygon -8630108 true true 134 14 164 13 163 51 136 52
+Polygon -1 true false 144 96 144 94 145 92 148 91 151 90 153 91 155 92 155 95
+Circle -8630108 true true 155 63 12
+Circle -8630108 true true 133 63 12
+Polygon -1 true false 154 68 161 61 161 63 166 59 166 62 172 63 166 64
+Polygon -1 true false 146 68 139 61 139 63 134 59 134 62 128 63 134 64
+Polygon -8630108 true true 132 116 139 100 171 98 215 269 218 273 226 274 236 278 245 279 245 283 241 287 230 289 220 289 205 289 192 289 179 289 162 288 150 286 143 116
+Polygon -13345367 true false 148 116 155 116 180 251 169 251
+Polygon -1 true false 150 92 149 95 142 95 137 95 133 95 127 93 127 99 127 105 132 112 136 117 141 119 145 121 151 121
+Polygon -13345367 true false 156 109 184 216 210 217 180 84
+Polygon -1 true false 150 92 151 95 158 95 163 95 167 95 173 93 173 99 173 105 168 112 164 117 159 119 155 121 149 121
+Polygon -1 true false 133 96 137 87 145 85 153 85 161 85 165 91 166 96 171 96 170 87 165 82 156 79 151 79 145 80 136 82 130 87 128 95
+Polygon -8630108 true true 164 12 183 31 180 35 190 47 188 52 188 57 190 64 192 71 191 76 189 83 188 90 201 98 187 112 171 102 180 100 175 95 173 85 173 75 174 64 175 60 170 54 163 52 160 53 161 14
+
+wizard3
+false
+11
+Polygon -2674135 true false 31 115 21 111 15 96 21 99 21 92 24 83 28 90 30 85 35 80 35 88 41 88 40 92 41 101 44 104 40 108
+Polygon -955883 true false 31 113 23 106 27 106 27 99 26 97 30 98 32 94 34 101 37 103 34 105
+Polygon -2674135 true false 269 115 279 111 285 96 279 99 279 92 276 83 272 90 270 85 265 80 265 88 259 88 260 92 259 101 256 104 260 108
+Polygon -8630108 true true 114 115 98 120 93 126 89 134 78 152 74 160 70 160 44 119 38 119 36 119 34 119 29 119 20 119 28 138 37 157 46 174 55 180 62 181 75 182 88 182 95 174 109 149 114 140
+Polygon -8630108 true true 186 115 202 120 207 126 211 134 222 152 226 160 230 160 256 119 262 119 264 119 266 119 271 119 280 119 272 138 263 157 254 174 245 180 238 181 225 182 212 182 205 174 191 149 186 140
+Polygon -8630108 true true 171 117 164 101 132 99 88 270 85 274 77 275 67 279 58 280 58 284 62 288 73 290 83 290 98 290 111 290 124 290 141 289 153 287 160 117
+Polygon -13345367 true false 155 116 148 116 123 251 134 251
+Polygon -13345367 true false 144 109 116 216 90 217 120 84
+Circle -16777216 true false 118 37 64
+Polygon -8630108 true true 135 13 116 32 119 36 109 48 111 53 111 58 109 65 107 72 108 77 110 84 111 91 98 99 112 113 128 103 119 101 124 96 126 86 126 76 125 65 124 61 129 55 136 53 139 54 138 15
+Polygon -8630108 true true 134 14 164 13 163 51 136 52
+Polygon -1 true false 144 96 144 94 145 92 148 91 151 90 153 91 155 92 155 95
+Circle -8630108 true true 155 63 12
+Circle -8630108 true true 133 63 12
+Polygon -1 true false 154 68 161 61 161 63 166 59 166 62 172 63 166 64
+Polygon -1 true false 146 68 139 61 139 63 134 59 134 62 128 63 134 64
+Polygon -8630108 true true 132 116 139 100 171 98 215 269 218 273 226 274 236 278 245 279 245 283 241 287 230 289 220 289 205 289 192 289 179 289 162 288 150 286 143 116
+Polygon -13345367 true false 148 116 155 116 180 251 169 251
+Polygon -1 true false 150 92 149 95 142 95 137 95 133 95 127 93 127 99 127 105 132 112 136 117 141 119 145 121 151 121
+Polygon -13345367 true false 156 109 184 216 210 217 180 84
+Polygon -1 true false 150 92 151 95 158 95 163 95 167 95 173 93 173 99 173 105 168 112 164 117 159 119 155 121 149 121
+Polygon -1 true false 133 96 137 87 145 85 153 85 161 85 165 91 166 96 171 96 170 87 165 82 156 79 151 79 145 80 136 82 130 87 128 95
+Polygon -8630108 true true 164 12 183 31 180 35 190 47 188 52 188 57 190 64 192 71 191 76 189 83 188 90 201 98 187 112 171 102 180 100 175 95 173 85 173 75 174 64 175 60 170 54 163 52 160 53 161 14
+Polygon -13345367 true false 279 121 281 116 256 115 256 121
+Polygon -13345367 true false 21 121 19 116 44 115 44 121
+Polygon -955883 true false 269 113 277 106 273 106 273 99 274 97 270 98 268 94 266 101 263 103 266 105
+Polygon -1184463 true false 268 114 272 109 270 103 269 105
+Polygon -1184463 true false 32 114 28 109 30 103 31 105
+
+wizard4
+false
+11
+Polygon -8630108 true true 114 115 98 120 93 126 89 134 78 152 74 160 70 160 44 119 38 119 36 119 34 119 29 119 20 119 28 138 37 157 46 174 55 180 62 181 75 182 88 182 95 174 109 149 114 140
+Polygon -8630108 true true 186 115 202 120 207 126 211 134 222 152 226 160 230 160 256 119 262 119 264 119 266 119 271 119 280 119 272 138 263 157 254 174 245 180 238 181 225 182 212 182 205 174 191 149 186 140
+Polygon -8630108 true true 171 117 164 101 132 99 88 270 85 274 77 275 67 279 58 280 58 284 62 288 73 290 83 290 98 290 111 290 124 290 141 289 153 287 160 117
+Polygon -13345367 true false 155 116 148 116 123 251 134 251
+Polygon -13345367 true false 144 109 116 216 90 217 120 84
+Circle -16777216 true false 118 37 64
+Polygon -8630108 true true 135 13 116 32 119 36 109 48 111 53 111 58 109 65 107 72 108 77 110 84 111 91 98 99 112 113 128 103 119 101 124 96 126 86 126 76 125 65 124 61 129 55 136 53 139 54 138 15
+Polygon -8630108 true true 134 14 164 13 163 51 136 52
+Polygon -1 true false 144 96 144 94 145 92 148 91 151 90 153 91 155 92 155 95
+Circle -8630108 true true 155 63 12
+Circle -8630108 true true 133 63 12
+Polygon -1 true false 154 68 161 61 161 63 166 59 166 62 172 63 166 64
+Polygon -1 true false 146 68 139 61 139 63 134 59 134 62 128 63 134 64
+Polygon -8630108 true true 132 116 139 100 171 98 215 269 218 273 226 274 236 278 245 279 245 283 241 287 230 289 220 289 205 289 192 289 179 289 162 288 150 286 143 116
+Polygon -13345367 true false 148 116 155 116 180 251 169 251
+Polygon -1 true false 150 92 149 95 142 95 137 95 133 95 127 93 127 99 127 105 132 112 136 117 141 119 145 121 151 121
+Polygon -13345367 true false 156 109 184 216 210 217 180 84
+Polygon -1 true false 150 92 151 95 158 95 163 95 167 95 173 93 173 99 173 105 168 112 164 117 159 119 155 121 149 121
+Polygon -1 true false 133 96 137 87 145 85 153 85 161 85 165 91 166 96 171 96 170 87 165 82 156 79 151 79 145 80 136 82 130 87 128 95
+Polygon -8630108 true true 164 12 183 31 180 35 190 47 188 52 188 57 190 64 192 71 191 76 189 83 188 90 201 98 187 112 171 102 180 100 175 95 173 85 173 75 174 64 175 60 170 54 163 52 160 53 161 14
+Polygon -13345367 true false 279 121 281 116 256 115 256 121
+Polygon -13345367 true false 21 121 19 116 44 115 44 121
+Polygon -2674135 true false 269 116 280 110 280 99 274 107 274 96 272 84 267 95 262 85 260 95 258 98 259 106 254 104 259 111 264 113
+Polygon -2674135 true false 31 116 20 110 20 99 26 107 26 96 28 84 33 95 38 85 40 95 42 98 41 106 46 104 41 111 36 113
+Polygon -955883 true false 268 115 273 112 270 112 271 103 268 106 265 99 262 105 262 102 262 110
+Polygon -955883 true false 32 115 27 112 30 112 29 103 32 106 35 99 38 105 38 102 38 110
+Polygon -1184463 true false 268 114 266 111 267 109 265 106 264 110
+Polygon -1184463 true false 32 114 34 111 33 109 35 106 36 110
 
 wolf
 false
