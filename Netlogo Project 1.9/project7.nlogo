@@ -931,24 +931,28 @@ to sense-exits
     carefully [
     set room read-from-string item 2 r-exit
     ] [set room room]
+    erase-mobs
     advance-level
   ]
   if exit-on = "Left" [
     carefully [
       set room read-from-string item 2 l-exit
     ] [set room room]
+    erase-mobs
     advance-level
   ]
   if exit-on = "Top" and (room != -1 or one-time = 10) [
     carefully [
       set room read-from-string item 2 t-exit
     ] [set room room]
-     advance-level
+    erase-mobs
+    advance-level
   ]
   if exit-on = "Bottom" [
     carefully [
       set room read-from-string item 2 b-exit
     ] [set room room]
+    erase-mobs
     advance-level
   ]
 end
@@ -1073,6 +1077,18 @@ to advance-level
     setup-level
     create-barrier
     create-exits
+  ]
+end
+
+to erase-mobs
+  carefully [
+    set lmelee replace-item level-number lmelee 0
+    set lrange replace-item level-number lrange 0
+    set lmagic replace-item level-number lmagic 0
+    set lboss replace-item level-number lboss 0
+    set lfinal replace-item level-number lfinal 0
+  ] [
+    set lmelee lmelee
   ]
 end
 
